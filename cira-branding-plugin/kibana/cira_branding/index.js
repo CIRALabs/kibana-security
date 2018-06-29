@@ -1,13 +1,10 @@
 export default function (kibana) {
     return new kibana.Plugin({
+     id: 'cira_branding',
      uiExports: {
-       app: {
-          title: 'cira_branding',
-          order: -100,
-          description: 'CIRA Corporate Branding Style',
-          main: 'plugins/cira_branding/index.js',
-          hidden: true
-       }
+       hacks: [
+         'plugins/cira_branding/hack'
+       ]
       }
     });
   };
