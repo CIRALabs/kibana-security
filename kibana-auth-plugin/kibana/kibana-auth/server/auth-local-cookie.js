@@ -1,5 +1,11 @@
 // Adapted from https://github.com/elasticfence/kibana-auth-elasticfence under MIT licence
 const elasticsearch = require('elasticsearch');
+const errorMessage = 'Invalid username or password';
+import { uiModules } from 'ui/modules';
+// const module = require('ui/modules').get('kibana');
+const module = uiModules.get('kibana', []);
+//FIXME use proper unique identifiers
+let uuid = 1;
 
 module.exports = function (server, options) {
 
@@ -24,8 +30,6 @@ module.exports = function (server, options) {
         let message;
         let username;
         let password;
-        let checked = false;
-        let processing = true;
 
         let loginForm = function(reply){
             return reply('<!DOCTYPE html>' +
@@ -62,10 +66,6 @@ module.exports = function (server, options) {
             password = request.query.password;
         }
 
-        if (!username && !password) {
-            processing = false;
-        }
-
         if (username || password) {
             elasticsearch.Client.apis.tokenApi = tokenApi;
             let client = new elasticsearch.Client({
@@ -73,31 +73,33 @@ module.exports = function (server, options) {
             });
             client.getToken(username, password).then((response) => {
                 if (response.success === 1) {
-                    checked = true;
-                    let uuid = 1;
                     const sid = String(++uuid);
-                    request.server.app.cache.set(sid, { username: username }, 0, (err) => {
+                    request.server.app.cache.set(sid, { jwt: response.result }, 0, (err) => {
                         if (err) {
                             reply(err);
                         }
-
-                        request.cookieAuth.set({ sid: sid });
+                        request.cookieAuth.set({ sid: sid, jwt: response.result });
+                        module.factory('authInterceptor', function() {
+                            return {
+                                request : function(config) {
+                                    config.headers.authorization = 'Bearer ' + response.result;
+                                    return config;
+                                }
+                            }
+                        }).config(function($httpProvider) {
+                            $httpProvider.interceptors.push('authInterceptor');
+                        });
                         return reply.redirect("/");
                     });
                 } else {
-                    message = 'Invalid username or password';
+                    message = errorMessage;
                     loginForm(reply);
                 }
             }).catch(() => {
-                message = 'Invalid username or password';
+                message = errorMessage;
                 loginForm(reply);
             });
-        } else if (request.method === 'post') {
-            processing = false;
-            message = 'Missing username or password';
-        }
-
-        if (!checked && !processing) {
+        } else {
             loginForm(reply);
         }
     };
@@ -134,7 +136,7 @@ module.exports = function (server, options) {
                         return callback(null, false);
                     }
 
-                    return callback(null, true, cached.username);
+                    return callback(null, true, cached.jwt);
                 });
             }
         });
