@@ -6,7 +6,7 @@ let uuid = 1;
 
 module.exports = function (server, options) {
 
-    const tokenApi = {
+    elasticsearch.Client.apis.tokenApi = {
         getToken: function (username, password) {
             return this.transport.request({
                 method: 'POST',
@@ -17,6 +17,9 @@ module.exports = function (server, options) {
             });
         }
     };
+    let client = new elasticsearch.Client({
+        apiVersion: 'tokenApi'
+    });
 
     const login = function (request, reply) {
 
@@ -28,6 +31,7 @@ module.exports = function (server, options) {
         let username;
         let password;
 
+        //FIXME this shouldn't be embedded in JS...
         let loginForm = function(reply){
             return reply('<!DOCTYPE html>' +
                 '<html>' +
@@ -37,20 +41,20 @@ module.exports = function (server, options) {
                         '<link rel="stylesheet" href="/optimize/bundles/kibana.style.css">' +
                     '</head>' +
                     '<body>' +
-                        '<center>' +
-                            '<div class="container" style="width: 20%;margin-left: auto;margin-right:auto;margin-top: 10%;">' +
+                            '<div class="container" style="width: 20%;margin-left: auto;margin-right:auto;margin-top: 10%;text-align: center;">' +
                                 '<h1 style="background-color: #e8488b"><img width="60%" src="/src/ui/public/images/kibana.svg"></h1>' +
                                 (message ? '<h3>' + message + '</h3><br/>' : '') +
                                 '<form id="login-form" method="post" action="/login">' +
                                     '<div class="form-group inner-addon left-addon">' +
-                                    '<input type="text" style="margin-bottom:8px;font-size: 1.25em;height: auto;" name="username" placeholder="Username" class="form-control">' +
-                                    '<input type="password" style="font-size: 1.25em;height: auto;" name="password" placeholder="Password" class="form-control">' +
+                                    '<input type="text" style="margin-bottom:8px;font-size: 1.25em;height: auto;text-align: center;"' +
+                                    ' name="username" placeholder="Username" class="form-control">' +
+                                    '<input type="password" style="font-size: 1.25em;height: auto;text-align: center;"' +
+                                    ' name="password" placeholder="Password" class="form-control">' +
                                     '</div><div style="width:200px;margin-left:auto;margin-right:auto;">' +
                                     '<input type="submit" value="Login" class="btn btn-default login" style="width: 80%;font-size: 1.5em;">' +
                                     '</div>' +
                                 '</form>' +
                             '</div>' +
-                        '</center>' +
                     '</body>' +
                 '</html>');
         };
@@ -64,13 +68,9 @@ module.exports = function (server, options) {
         }
 
         if (username || password) {
-            elasticsearch.Client.apis.tokenApi = tokenApi;
-            let client = new elasticsearch.Client({
-               apiVersion: 'tokenApi'
-            });
             client.getToken(username, password).then((response) => {
                 if (response.success === 1) {
-                    const sid = String(++uuid);
+                    const sid = String(uuid++);
                     request.server.app.cache.set(sid, { jwt: response.result }, 0, (err) => {
                         if (err) {
                             reply(err);
