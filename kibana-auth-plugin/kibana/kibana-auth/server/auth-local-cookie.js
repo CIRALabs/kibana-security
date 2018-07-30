@@ -1,9 +1,6 @@
 // Adapted from https://github.com/elasticfence/kibana-auth-elasticfence under MIT licence
 const elasticsearch = require('elasticsearch');
 const errorMessage = 'Invalid username or password';
-import { uiModules } from 'ui/modules';
-// const module = require('ui/modules').get('kibana');
-const module = uiModules.get('kibana', []);
 //FIXME use proper unique identifiers
 let uuid = 1;
 
@@ -79,17 +76,7 @@ module.exports = function (server, options) {
                             reply(err);
                         }
                         request.cookieAuth.set({ sid: sid, jwt: response.result });
-                        module.factory('authInterceptor', function() {
-                            return {
-                                request : function(config) {
-                                    config.headers.authorization = 'Bearer ' + response.result;
-                                    return config;
-                                }
-                            }
-                        }).config(function($httpProvider) {
-                            $httpProvider.interceptors.push('authInterceptor');
-                        });
-                        return reply.redirect("/");
+                        return reply.redirect('/');
                     });
                 } else {
                     message = errorMessage;
@@ -135,6 +122,8 @@ module.exports = function (server, options) {
                     if (!cached) {
                         return callback(null, false);
                     }
+
+                    request.headers['authorization'] = 'Bearer ' + cached.jwt;
 
                     return callback(null, true, cached.jwt);
                 });
