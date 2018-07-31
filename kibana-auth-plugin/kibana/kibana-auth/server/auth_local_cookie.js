@@ -5,10 +5,8 @@ module.exports = function (server, options) {
     const UUID = require('uuid/v4');
     const INERT = require('inert');
     const HAPI_AUTH_COOKIE = require('hapi-auth-cookie');
-    const ERROR_MESSAGE = 'Invalid username or password';
     const IRON_COOKIE_PASSWORD = 'SykQVCoKX1JNji0CLrQrQ13YO3F5YRuF';
     const TWO_HOURS_IN_MS = 2 * 60 * 60 * 1000;
-    const PUBLIC_ELEMENTS = ['/optimize/bundles/commons.style.css', '/optimize/bundles/kibana.style.css', '/src/ui/public/images/kibana.svg'];
 
     ELASTICSEARCH.Client.apis.tokenApi = {
         getToken: function (username, password) {
@@ -31,37 +29,8 @@ module.exports = function (server, options) {
             return reply.continue();
         }
 
-        let message;
         let username;
         let password;
-
-        //FIXME this shouldn't be embedded in JS...
-        let loginForm = function(reply){
-            return reply('<!DOCTYPE html>' +
-                '<html>' +
-                    '<head>' +
-                        '<title>Login Required</title>' +
-                        '<link rel="stylesheet" href="/login/commons.style.css">' +
-                        '<link rel="stylesheet" href="/login/kibana.style.css">' +
-                    '</head>' +
-                    '<body>' +
-                            '<div class="container" style="width: 20%;margin-left: auto;margin-right:auto;margin-top: 10%;text-align: center;">' +
-                                '<h1><img width="60%" src="/login/logo.svg"></h1>' +
-                                (message ? '<h3>' + message + '</h3><br/>' : '') +
-                                '<form id="login-form" method="post" action="/login">' +
-                                    '<div class="form-group inner-addon left-addon">' +
-                                    '<input type="text" style="margin-bottom:8px;font-size: 1.25em;height: auto;text-align: center;"' +
-                                    ' name="username" placeholder="Username" class="form-control">' +
-                                    '<input type="password" style="margin-bottom:8px;font-size: 1.25em;height: auto;text-align: center;"' +
-                                    ' name="password" placeholder="Password" class="form-control">' +
-                                    '</div><div>' +
-                                    '<input type="submit" value="Login" class="btn btn-default login" style="width: 60%;font-size: 1.5em;">' +
-                                    '</div>' +
-                                '</form>' +
-                            '</div>' +
-                    '</body>' +
-                '</html>');
-        };
 
         if (request.method === 'post') {
             username = request.payload.username;
@@ -83,15 +52,14 @@ module.exports = function (server, options) {
                         return reply.redirect('/');
                     });
                 } else {
-                    message = ERROR_MESSAGE;
-                    loginForm(reply);
+                    //FIXME refactor all of these calls, code duplication
+                    return reply.redirect('/login_page');
                 }
             }).catch(() => {
-                message = ERROR_MESSAGE;
-                loginForm(reply);
+                return reply.redirect('/login_page');
             });
         } else {
-            loginForm(reply);
+            return reply.redirect('/login_page');
         }
     };
 
@@ -116,7 +84,7 @@ module.exports = function (server, options) {
         server.auth.strategy('session', 'cookie', true, {
             password: IRON_COOKIE_PASSWORD,
             cookie: 'sid',
-            redirectTo: '/login',
+            redirectTo: '/login_page',
             //FIXME change to true once SSL is enabled
             isSecure: false,
             validateFunc: function (request, session, callback) {
@@ -152,7 +120,19 @@ module.exports = function (server, options) {
             },
             {
                 method: ['GET'],
-                path: '/login/logo.svg',
+                path: '/login_page',
+                handler: {
+                    //TODO Would be nice to have an 'invalid username/password' message on this again
+                    file: 'plugins/kibana-auth/public/login_page.html'
+                },
+                config: {
+                    auth: { mode: 'optional' },
+                    plugins: { 'hapi-auth-cookie': { redirectTo: false } }
+                }
+            },
+            {
+                method: ['GET'],
+                path: '/login_page/logo.svg',
                 handler: {
                     file: 'plugins/cira_branding/public/assets/images/cira_logo.svg'
                 },
@@ -163,7 +143,7 @@ module.exports = function (server, options) {
             },
             {
                 method: ['GET'],
-                path: '/login/kibana.style.css',
+                path: '/login_page/kibana.style.css',
                 handler: {
                     file: 'optimize/bundles/kibana.style.css'
                 },
@@ -174,7 +154,7 @@ module.exports = function (server, options) {
             },
             {
                 method: ['GET'],
-                path: '/login/commons.style.css',
+                path: '/login_page/commons.style.css',
                 handler: {
                     file: 'optimize/bundles/commons.style.css'
                 },
