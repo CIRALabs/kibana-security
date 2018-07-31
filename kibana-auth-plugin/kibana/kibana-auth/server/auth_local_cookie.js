@@ -1,12 +1,13 @@
 // Adapted from https://github.com/elasticfence/kibana-auth-elasticfence under MIT licence
-const elasticsearch = require('elasticsearch');
-const errorMessage = 'Invalid username or password';
-//FIXME use proper unique identifiers
-let uuid = 1;
 
 module.exports = function (server, options) {
+    const ELASTICSEARCH = require('elasticsearch');
+    const UUID = require('uuid/v4');
+    const ERROR_MESSAGE = 'Invalid username or password';
+    const IRON_COOKIE_PASSWORD = 'SykQVCoKX1JNji0CLrQrQ13YO3F5YRuF';
+    const TWO_HOURS_IN_MS = 2 * 60 * 60 * 1000;
 
-    elasticsearch.Client.apis.tokenApi = {
+    ELASTICSEARCH.Client.apis.tokenApi = {
         getToken: function (username, password) {
             return this.transport.request({
                 method: 'POST',
@@ -17,7 +18,7 @@ module.exports = function (server, options) {
             });
         }
     };
-    let client = new elasticsearch.Client({
+    let client = new ELASTICSEARCH.Client({
         apiVersion: 'tokenApi'
     });
 
@@ -70,7 +71,7 @@ module.exports = function (server, options) {
         if (username || password) {
             client.getToken(username, password).then((response) => {
                 if (response.success === 1) {
-                    const sid = String(uuid++);
+                    const sid = UUID();
                     request.server.app.cache.set(sid, { jwt: response.result, type: response.user_type }, 0, (err) => {
                         if (err) {
                             reply(err);
@@ -79,11 +80,11 @@ module.exports = function (server, options) {
                         return reply.redirect('/');
                     });
                 } else {
-                    message = errorMessage;
+                    message = ERROR_MESSAGE;
                     loginForm(reply);
                 }
             }).catch(() => {
-                message = errorMessage;
+                message = ERROR_MESSAGE;
                 loginForm(reply);
             });
         } else {
@@ -97,21 +98,18 @@ module.exports = function (server, options) {
     };
 
     server.register(require('hapi-auth-cookie'), (err) => {
-        //FIXME put something good here
-        const authHash = 'SykQVCoKX1JNji0CLrQrQ13YO3F5YRuF';
-
         if (err) {
             throw err;
         }
 
-        // 2 hours
-        const cache = server.cache({ segment: 'sessions', expiresIn: 2 * 60 * 60 * 1000 });
+        const cache = server.cache({ segment: 'sessions', expiresIn: TWO_HOURS_IN_MS });
         server.app.cache = cache;
 
         server.auth.strategy('session', 'cookie', true, {
-            password: authHash,
+            password: IRON_COOKIE_PASSWORD,
             cookie: 'sid',
             redirectTo: '/login',
+            //FIXME change to true once SSL is enabled
             isSecure: false,
             validateFunc: function (request, session, callback) {
                 cache.get(session.sid, (err, cached) => {
@@ -123,7 +121,10 @@ module.exports = function (server, options) {
                         return callback(null, false);
                     }
 
+                    // This line is the linch pin of this whole operation
+                    // It ensures that the JWT is passed around on requests to Elasticsearch
                     request.headers['authorization'] = 'Bearer ' + cached.jwt;
+                    // User type determines which applications show up on Kibana nav
                     request.headers['x-es-user-type'] = cached.type;
 
                     return callback(null, true, cached.jwt);

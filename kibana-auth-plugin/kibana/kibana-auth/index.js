@@ -1,4 +1,8 @@
 export default function (kibana) {
+    const REGULAR_ES_USER = 4;
+    /* Core plugins are ordered around 9000, so this ensures that the logout button is below them */
+    const LOGOUT_ORDER = 10000;
+
     return new kibana.Plugin({
         name: 'kibana-auth',
         require: ['kibana', 'elasticsearch'],
@@ -7,9 +11,7 @@ export default function (kibana) {
                 {
                     id: 'elastic-auth:logout',
                     title: 'Logout',
-                    // Core plugins are ordered around 9000, so this ensures that the logout button is below them
-                    //FIXME extract to constant
-                    order: 10000,
+                    order: LOGOUT_ORDER,
                     url: `/logout`,
                     description: 'Logout current user',
                     icon: 'plugins/kibana-auth/assets/images/padlock.svg',
@@ -18,8 +20,7 @@ export default function (kibana) {
             ],
 
             replaceInjectedVars(injectedVars, request) {
-                //FIXME extract to constant (regular user is 4)
-                if (request.headers['x-es-user-type'] === 4) {
+                if (request.headers['x-es-user-type'] === REGULAR_ES_USER) {
                     injectedVars.hiddenAppIds = ['apm', 'kibana:dev_tools', "monitoring", "kibana:management"];
                 }
 
