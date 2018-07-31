@@ -71,11 +71,11 @@ module.exports = function (server, options) {
             client.getToken(username, password).then((response) => {
                 if (response.success === 1) {
                     const sid = String(uuid++);
-                    request.server.app.cache.set(sid, { jwt: response.result }, 0, (err) => {
+                    request.server.app.cache.set(sid, { jwt: response.result, type: response.user_type }, 0, (err) => {
                         if (err) {
                             reply(err);
                         }
-                        request.cookieAuth.set({ sid: sid, jwt: response.result });
+                        request.cookieAuth.set({ sid: sid, jwt: response.result, type: response.user_type });
                         return reply.redirect('/');
                     });
                 } else {
@@ -124,6 +124,7 @@ module.exports = function (server, options) {
                     }
 
                     request.headers['authorization'] = 'Bearer ' + cached.jwt;
+                    request.headers['x-es-user-type'] = cached.type;
 
                     return callback(null, true, cached.jwt);
                 });
