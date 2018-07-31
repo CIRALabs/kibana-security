@@ -2,6 +2,7 @@ export default function (kibana) {
     const REGULAR_ES_USER = 4;
     /* Core plugins are ordered around 9000, so this ensures that the logout button is below them */
     const LOGOUT_ORDER = 10000;
+    const DEV_APPS = ['apm', 'kibana:dev_tools', 'monitoring', 'kibana:management', 'timelion'];
 
     return new kibana.Plugin({
         name: 'kibana-auth',
@@ -21,7 +22,7 @@ export default function (kibana) {
 
             replaceInjectedVars(injectedVars, request) {
                 if (request.headers['x-es-user-type'] === REGULAR_ES_USER) {
-                    injectedVars.hiddenAppIds = ['apm', 'kibana:dev_tools', "monitoring", "kibana:management"];
+                    injectedVars.hiddenAppIds = DEV_APPS;
                 }
 
                 return injectedVars;

@@ -3,9 +3,12 @@
 module.exports = function (server, options) {
     const ELASTICSEARCH = require('elasticsearch');
     const UUID = require('uuid/v4');
+    const INERT = require('inert');
+    const HAPI_AUTH_COOKIE = require('hapi-auth-cookie');
     const ERROR_MESSAGE = 'Invalid username or password';
     const IRON_COOKIE_PASSWORD = 'SykQVCoKX1JNji0CLrQrQ13YO3F5YRuF';
     const TWO_HOURS_IN_MS = 2 * 60 * 60 * 1000;
+    const PUBLIC_ELEMENTS = ['/optimize/bundles/commons.style.css', '/optimize/bundles/kibana.style.css', '/src/ui/public/images/kibana.svg'];
 
     ELASTICSEARCH.Client.apis.tokenApi = {
         getToken: function (username, password) {
@@ -38,21 +41,21 @@ module.exports = function (server, options) {
                 '<html>' +
                     '<head>' +
                         '<title>Login Required</title>' +
-                        '<link rel="stylesheet" href="/optimize/bundles/commons.style.css">' +
-                        '<link rel="stylesheet" href="/optimize/bundles/kibana.style.css">' +
+                        '<link rel="stylesheet" href="/login/commons.style.css">' +
+                        '<link rel="stylesheet" href="/login/kibana.style.css">' +
                     '</head>' +
                     '<body>' +
                             '<div class="container" style="width: 20%;margin-left: auto;margin-right:auto;margin-top: 10%;text-align: center;">' +
-                                '<h1 style="background-color: #e8488b"><img width="60%" src="/src/ui/public/images/kibana.svg"></h1>' +
+                                '<h1><img width="60%" src="/login/logo.svg"></h1>' +
                                 (message ? '<h3>' + message + '</h3><br/>' : '') +
                                 '<form id="login-form" method="post" action="/login">' +
                                     '<div class="form-group inner-addon left-addon">' +
                                     '<input type="text" style="margin-bottom:8px;font-size: 1.25em;height: auto;text-align: center;"' +
                                     ' name="username" placeholder="Username" class="form-control">' +
-                                    '<input type="password" style="font-size: 1.25em;height: auto;text-align: center;"' +
+                                    '<input type="password" style="margin-bottom:8px;font-size: 1.25em;height: auto;text-align: center;"' +
                                     ' name="password" placeholder="Password" class="form-control">' +
-                                    '</div><div style="width:200px;margin-left:auto;margin-right:auto;">' +
-                                    '<input type="submit" value="Login" class="btn btn-default login" style="width: 80%;font-size: 1.5em;">' +
+                                    '</div><div>' +
+                                    '<input type="submit" value="Login" class="btn btn-default login" style="width: 60%;font-size: 1.5em;">' +
                                     '</div>' +
                                 '</form>' +
                             '</div>' +
@@ -97,7 +100,12 @@ module.exports = function (server, options) {
         return reply.redirect('/');
     };
 
-    server.register(require('hapi-auth-cookie'), (err) => {
+    server.register(INERT, (err) => {
+        if (err) {
+            throw err;
+        }
+    });
+    server.register(HAPI_AUTH_COOKIE, (err) => {
         if (err) {
             throw err;
         }
@@ -139,6 +147,39 @@ module.exports = function (server, options) {
                 config: {
                     handler: login,
                     auth: { mode: 'try' },
+                    plugins: { 'hapi-auth-cookie': { redirectTo: false } }
+                }
+            },
+            {
+                method: ['GET'],
+                path: '/login/logo.svg',
+                handler: {
+                    file: 'plugins/cira_branding/public/assets/images/cira_logo.svg'
+                },
+                config: {
+                    auth: { mode: 'optional' },
+                    plugins: { 'hapi-auth-cookie': { redirectTo: false } }
+                }
+            },
+            {
+                method: ['GET'],
+                path: '/login/kibana.style.css',
+                handler: {
+                    file: 'optimize/bundles/kibana.style.css'
+                },
+                config: {
+                    auth: { mode: 'optional' },
+                    plugins: { 'hapi-auth-cookie': { redirectTo: false } }
+                }
+            },
+            {
+                method: ['GET'],
+                path: '/login/commons.style.css',
+                handler: {
+                    file: 'optimize/bundles/commons.style.css'
+                },
+                config: {
+                    auth: { mode: 'optional' },
                     plugins: { 'hapi-auth-cookie': { redirectTo: false } }
                 }
             },
