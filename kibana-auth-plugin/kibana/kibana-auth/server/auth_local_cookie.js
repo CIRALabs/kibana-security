@@ -7,6 +7,7 @@ module.exports = function (server, options) {
     const HAPI_AUTH_COOKIE = require('hapi-auth-cookie');
     const IRON_COOKIE_PASSWORD = 'SykQVCoKX1JNji0CLrQrQ13YO3F5YRuF';
     const TWO_HOURS_IN_MS = 2 * 60 * 60 * 1000;
+    const LOGIN_PAGE = '/login_page';
 
     ELASTICSEARCH.Client.apis.tokenApi = {
         getToken: function (username, password) {
@@ -46,20 +47,21 @@ module.exports = function (server, options) {
                     const sid = UUID();
                     request.server.app.cache.set(sid, { jwt: response.result, type: response.user_type }, 0, (err) => {
                         if (err) {
-                            reply(err);
+                            return reply(err);
                         }
                         request.cookieAuth.set({ sid: sid, jwt: response.result, type: response.user_type });
                         return reply.redirect('/');
                     });
-                } else {
-                    //FIXME refactor all of these calls, code duplication
-                    return reply.redirect('/login_page');
+                }
+                else {
+                    return reply.redirect(LOGIN_PAGE);
                 }
             }).catch(() => {
-                return reply.redirect('/login_page');
+                return reply.redirect(LOGIN_PAGE);
             });
-        } else {
-            return reply.redirect('/login_page');
+        }
+        else {
+            return reply.redirect(LOGIN_PAGE);
         }
     };
 
@@ -84,7 +86,8 @@ module.exports = function (server, options) {
         server.auth.strategy('session', 'cookie', true, {
             password: IRON_COOKIE_PASSWORD,
             cookie: 'sid',
-            redirectTo: '/login_page',
+            redirectTo: LOGIN_PAGE,
+            ttl: TWO_HOURS_IN_MS,
             //FIXME change to true once SSL is enabled
             isSecure: false,
             validateFunc: function (request, session, callback) {
