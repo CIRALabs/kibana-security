@@ -8,6 +8,8 @@ module.exports = function (server, options) {
     const IRON_COOKIE_PASSWORD = 'SykQVCoKX1JNji0CLrQrQ13YO3F5YRuF';
     const TWO_HOURS_IN_MS = 2 * 60 * 60 * 1000;
     const LOGIN_PAGE = '/login_page';
+    const REGULAR_ES_USER = 4;
+    const DEV_APPS_STANDALONE_URL = ['/app/apm', '/app/monitoring', '/app/timelion'];
 
     ELASTICSEARCH.Client.apis.tokenApi = {
         getToken: function (username, password) {
@@ -67,9 +69,10 @@ module.exports = function (server, options) {
 
     const logout = function (request, reply) {
         request.cookieAuth.clear();
-        return reply.redirect('/');
+        return reply.redirect(LOGIN_PAGE);
     };
 
+    // Inert allows for the serving of static files
     server.register(INERT, (err) => {
         if (err) {
             throw err;
@@ -111,6 +114,32 @@ module.exports = function (server, options) {
             }
         });
 
+        const isForbiddenApp = function (path) {
+            for (let url of DEV_APPS_STANDALONE_URL) {
+                if (path.indexOf(url) > -1) {
+                    return true;
+                }
+            }
+            return false;
+        };
+
+        // This extension does server-side redirection of standalone dev apps if the user is not a developer
+        server.ext({
+            type: 'onPostAuth',
+            method: function (request, reply) {
+                if (
+                    typeof request.headers !== "undefined" &&
+                    typeof request.headers['x-es-user-type'] !== "undefined" &&
+                    request.headers['x-es-user-type'] === REGULAR_ES_USER
+                ) {
+                    if (isForbiddenApp(request.path)) {
+                        return reply.redirect('/');
+                    }
+                }
+                return reply.continue();
+            }
+        });
+
         server.route([
             {
                 method: ['GET', 'POST'],
@@ -121,6 +150,12 @@ module.exports = function (server, options) {
                     plugins: { 'hapi-auth-cookie': { redirectTo: false } }
                 }
             },
+            {
+                method: 'GET',
+                path: '/logout',
+                config: { handler: logout }
+            },
+            // Explicitly serve the following files for the login page, to avoid automatic redirection
             {
                 method: ['GET'],
                 path: '/login_page',
@@ -166,7 +201,6 @@ module.exports = function (server, options) {
                     plugins: { 'hapi-auth-cookie': { redirectTo: false } }
                 }
             },
-            { method: 'GET', path: '/logout', config: { handler: logout } }
         ]);
     });
 };
