@@ -4,6 +4,7 @@ export default function (kibana) {
     const LOGOUT_ORDER = 10000;
     /* These identify the application in the navigation panel */
     const DEV_APPS_ID = ['apm', 'kibana:dev_tools', 'monitoring', 'kibana:management', 'timelion'];
+    /* These identify core applications in the URL */
     const DEV_APPS_CORE_URL = ['/dev_tools', '/management'];
 
     return new kibana.Plugin({
@@ -35,6 +36,13 @@ export default function (kibana) {
                 'plugins/kibana-auth/hacks/hide_nav',
                 'plugins/kibana-auth/hacks/redirect_forbidden_apps'
             ]
+        },
+
+        config(Joi) {
+            return Joi.object({
+                enabled: Joi.boolean().default(true),
+                cookie_password: Joi.string().min(32)
+            }).default();
         },
 
         init(server, options) {

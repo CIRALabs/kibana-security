@@ -5,11 +5,15 @@ module.exports = function (server, options) {
     const UUID = require('uuid/v4');
     const INERT = require('inert');
     const HAPI_AUTH_COOKIE = require('hapi-auth-cookie');
-    const IRON_COOKIE_PASSWORD = 'SykQVCoKX1JNji0CLrQrQ13YO3F5YRuF';
+
     const TWO_HOURS_IN_MS = 2 * 60 * 60 * 1000;
     const LOGIN_PAGE = '/login_page';
     const REGULAR_ES_USER = 4;
     const DEV_APPS_STANDALONE_URL = ['/app/apm', '/app/monitoring', '/app/timelion'];
+    const USER_TYPE_HEADER = 'x-es-user-type';
+
+    // Encode cookie with symmetric key encryption using password pulled from config
+    const IRON_COOKIE_PASSWORD = server.config().get('kibana-auth.cookie_password');
 
     ELASTICSEARCH.Client.apis.tokenApi = {
         getToken: function (username, password) {
@@ -107,7 +111,7 @@ module.exports = function (server, options) {
                     // It ensures that the JWT is passed around on requests to Elasticsearch
                     request.headers['authorization'] = 'Bearer ' + cached.jwt;
                     // User type determines which applications show up on Kibana nav
-                    request.headers['x-es-user-type'] = cached.type;
+                    request.headers[USER_TYPE_HEADER] = cached.type;
 
                     return callback(null, true, cached.jwt);
                 });
@@ -128,9 +132,9 @@ module.exports = function (server, options) {
             type: 'onPostAuth',
             method: function (request, reply) {
                 if (
-                    typeof request.headers !== "undefined" &&
-                    typeof request.headers['x-es-user-type'] !== "undefined" &&
-                    request.headers['x-es-user-type'] === REGULAR_ES_USER
+                    typeof request.headers !== 'undefined' &&
+                    typeof request.headers[USER_TYPE_HEADER] !== 'undefined' &&
+                    request.headers[USER_TYPE_HEADER] === REGULAR_ES_USER
                 ) {
                     if (isForbiddenApp(request.path)) {
                         return reply.redirect('/');
