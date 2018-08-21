@@ -19,7 +19,7 @@ module.exports = function (server, options) {
         getToken: function (username, password) {
             return this.transport.request({
                 method: 'POST',
-                path: '_token',
+                path: '/_token',
                 headers: {
                     Authorization: 'Basic ' + Buffer.from(username + ':' + password).toString('base64')
                 }
@@ -27,7 +27,8 @@ module.exports = function (server, options) {
         }
     };
     let client = new ELASTICSEARCH.Client({
-        apiVersion: 'tokenApi'
+        apiVersion: 'tokenApi',
+        host: server.config().get('elasticsearch.url')
     });
 
     const login = function (request, reply) {
