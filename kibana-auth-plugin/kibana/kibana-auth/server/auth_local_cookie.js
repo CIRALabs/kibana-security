@@ -11,6 +11,7 @@ module.exports = function (server, options) {
     const REGULAR_ES_USER = 4;
     const DEV_APPS_STANDALONE_URL = ['/app/apm', '/app/monitoring', '/app/timelion'];
     const USER_TYPE_HEADER = 'x-es-user-type';
+    const ABS_PATH = server.config().get('kibana-auth.kibana_install_dir');
 
     // Encode cookie with symmetric key encryption using password pulled from config
     const IRON_COOKIE_PASSWORD = server.config().get('kibana-auth.cookie_password');
@@ -166,7 +167,7 @@ module.exports = function (server, options) {
                 path: '/login_page',
                 handler: {
                     //TODO Would be nice to have an 'invalid username/password' message on this again
-                    file: 'plugins/kibana-auth/public/login_page.html'
+                    file: ABS_PATH + '/plugins/kibana-auth/public/login_page.html'
                 },
                 config: {
                     auth: { mode: 'optional' },
@@ -177,7 +178,7 @@ module.exports = function (server, options) {
                 method: ['GET'],
                 path: '/login_page/logo.svg',
                 handler: {
-                    file: 'plugins/cira_branding/public/assets/images/cira_logo.svg'
+                    file: ABS_PATH + '/plugins/cira_branding/public/assets/images/cira_logo.svg'
                 },
                 config: {
                     auth: { mode: 'optional' },
@@ -188,7 +189,7 @@ module.exports = function (server, options) {
                 method: ['GET'],
                 path: '/login_page/kibana.style.css',
                 handler: {
-                    file: 'optimize/bundles/kibana.style.css'
+                    file: ABS_PATH + '/optimize/bundles/kibana.style.css'
                 },
                 config: {
                     auth: { mode: 'optional' },
@@ -199,7 +200,7 @@ module.exports = function (server, options) {
                 method: ['GET'],
                 path: '/login_page/commons.style.css',
                 handler: {
-                    file: 'optimize/bundles/commons.style.css'
+                    file: ABS_PATH + '/optimize/bundles/commons.style.css'
                 },
                 config: {
                     auth: { mode: 'optional' },
