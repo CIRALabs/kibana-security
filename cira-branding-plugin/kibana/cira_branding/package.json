@@ -1,9 +1,9 @@
 {
     "name": "cira_branding",
-    "version": "0.1.1",
+    "version": "2018.8.1",
     "main": "index.js",
     "kibana": {
-      "version": "6.3.0"
+      "version": "6.4.0"
     },
     "author": "CIRA Labs / Lucas Estienne <lucas.estienne@cira.ca>",
     "website": "http://www.ciralabs.ca"
