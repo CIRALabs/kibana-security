@@ -1,9 +1,9 @@
 {
     "name": "kibana-auth",
-    "version": "0.0.6",
+    "version": "2018.10.20",
     "main": "index.js",
     "kibana": {
-      "version": "6.4.0"
+      "version": "6.4.2"
     },
     "author": "CIRA Labs / Zachary Wilkins <zachary.wilkins@cira.ca>",
     "website": "http://www.ciralabs.ca"
