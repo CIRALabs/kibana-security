@@ -1,4 +1,6 @@
 // Adapted from https://github.com/elasticfence/kibana-auth-elasticfence under MIT licence
+// To log (for debugging):
+// server.log(['info'], 'Log message here');
 
 module.exports = function (server, options) {
     const ELASTICSEARCH = require('elasticsearch');
@@ -95,6 +97,7 @@ module.exports = function (server, options) {
         server.auth.strategy('session', 'cookie', true, {
             password: IRON_COOKIE_PASSWORD,
             cookie: 'sid',
+            clearInvalid: true,
             redirectTo: LOGIN_PAGE,
             ttl: TWO_HOURS_IN_MS,
             //FIXME change to true once SSL is enabled
