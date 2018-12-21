@@ -7,6 +7,7 @@ module.exports = function (server, options) {
     const UUID = require('uuid/v4');
     const INERT = require('inert');
     const HAPI_AUTH_COOKIE = require('hapi-auth-cookie');
+    const CATBOX_MEMORY = require('catbox-memory');
 
     const TWO_HOURS_IN_MS = 2 * 60 * 60 * 1000;
     const LOGIN_PAGE = '/login_page';
@@ -14,6 +15,7 @@ module.exports = function (server, options) {
     const DEV_APPS_STANDALONE_URL = ['/app/apm', '/app/monitoring', '/app/timelion'];
     const USER_TYPE_HEADER = 'x-es-user-type';
     const ABS_PATH = server.config().get('kibana-auth.kibana_install_dir');
+    const CACHE_NAME = 'kibana-auth';
 
     // Encode cookie with symmetric key encryption using password pulled from config
     const IRON_COOKIE_PASSWORD = server.config().get('kibana-auth.cookie_password');
@@ -91,8 +93,21 @@ module.exports = function (server, options) {
             throw err;
         }
 
-        const cache = server.cache({ segment: 'sessions', expiresIn: TWO_HOURS_IN_MS });
-        server.app.cache = cache;
+        server.cache.provision({ engine: CATBOX_MEMORY, name: CACHE_NAME }, (err) => {
+            if (err) {
+                throw err;
+            }
+
+            const cache = server.cache({ cache: CACHE_NAME, segment: 'sessions', expiresIn: TWO_HOURS_IN_MS });
+            // For some reason Kibana doesn't start caches anymore, so this accesses the internal memory
+            // cache to give it a kick manually
+            if (!cache.isReady()) {
+                cache._cache.connection.start(() => {
+                    server.log(['info'], 'Started memory cache for ' + CACHE_NAME);
+                });
+            }
+            server.app.cache = cache;
+        });
 
         server.auth.strategy('session', 'cookie', true, {
             password: IRON_COOKIE_PASSWORD,
@@ -100,30 +115,26 @@ module.exports = function (server, options) {
             clearInvalid: true,
             redirectTo: LOGIN_PAGE,
             ttl: TWO_HOURS_IN_MS,
-            //FIXME change to true once SSL is enabled
+            //FIXME change to true once SSL is enabled (cluster wide, node to node)
             isSecure: false,
-            validateFunc: async function (request, session, callback) {
-                let cached = {};
-                cached.jwt = "jwt for admin here";
-                cached.type = 7;
-                // try {
-                // cached = await cache.get(session.sid);
-                // } catch (err) {
-                // server.log(['error'], 'Failed to retrieve JWT from cache, err: ' + err);
-                // return callback(err, false);
-                // }
+            validateFunc: function (request, session, callback) {
+                server.app.cache.get(session.sid, (err, cached) => {
+                    if (err) {
+                        return callback(err, false);
+                    }
 
-                if (!cached) {
-                    return callback(null, false);
-                }
+                    if (!cached) {
+                        return callback(null, false);
+                    }
 
-                // This line is the linch pin of this whole operation
-                // It ensures that the JWT is passed around on requests to Elasticsearch
-                request.headers['authorization'] = 'Bearer ' + cached.jwt;
-                // User type determines which applications show up on Kibana nav
-                request.headers[USER_TYPE_HEADER] = cached.type;
+                    // This line is the linch pin of this whole operation
+                    // It ensures that the JWT is passed around on requests to Elasticsearch
+                    request.headers['authorization'] = 'Bearer ' + cached.jwt;
+                    // User type determines which applications show up on Kibana nav
+                    request.headers[USER_TYPE_HEADER] = cached.type;
 
-                return callback(null, true, cached.jwt);
+                    return callback(null, true, cached.jwt);
+                });
             }
         });
 
