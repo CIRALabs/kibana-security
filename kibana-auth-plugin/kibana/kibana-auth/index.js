@@ -3,7 +3,9 @@ export default function (kibana) {
     /* Core plugins are ordered around 9000, so this ensures that the logout button is below them */
     const LOGOUT_ORDER = 10000;
     /* These identify the application in the navigation panel */
-    const DEV_APPS_ID = ['apm', 'kibana:dev_tools', 'monitoring', 'kibana:management', 'timelion'];
+    const DEV_APPS_ID = [
+        'apm', 'kibana:dev_tools', 'monitoring', 'kibana:management', 'timelion', 'canvas', 'ml', 'infra'
+    ];
     /* These identify core applications in the URL */
     const DEV_APPS_CORE_URL = ['/dev_tools', '/management'];
 

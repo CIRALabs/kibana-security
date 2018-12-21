@@ -12,7 +12,9 @@ module.exports = function (server, options) {
     const TWO_HOURS_IN_MS = 2 * 60 * 60 * 1000;
     const LOGIN_PAGE = '/login_page';
     const REGULAR_ES_USER = 4;
-    const DEV_APPS_STANDALONE_URL = ['/app/apm', '/app/monitoring', '/app/timelion'];
+    const DEV_APPS_STANDALONE_URL = [
+        '/app/apm', '/app/monitoring', '/app/timelion', '/app/canvas', '/app/ml', '/app/infra'
+    ];
     const USER_TYPE_HEADER = 'x-es-user-type';
     const ABS_PATH = server.config().get('kibana-auth.kibana_install_dir');
     const CACHE_NAME = 'kibana-auth';
