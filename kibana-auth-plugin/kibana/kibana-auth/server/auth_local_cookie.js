@@ -226,7 +226,7 @@ module.exports = function (server, options) {
                     auth: { mode: 'optional' },
                     plugins: { 'hapi-auth-cookie': { redirectTo: false } }
                 }
-            },
+            }
         ]);
     });
 };
