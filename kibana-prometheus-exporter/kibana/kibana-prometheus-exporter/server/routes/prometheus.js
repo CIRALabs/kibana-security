@@ -31,7 +31,8 @@ export default function (server) {
 }
 
 function makeUrl(uri, basePath) {
-  return `${uri}${basePath}/api/status?extended`;
+  // Use custom path to automate login
+  return `${uri}${basePath}/prometheus_stats`;
 }
 
 function getMetrics(url, user, callback) {
@@ -42,7 +43,9 @@ function getMetrics(url, user, callback) {
       url : url,
       headers : {
         "Authorization" : auth
-      }
+      },
+      // Hold on to cookies for future use
+      jar : true
     }, function (error, res, body) {
     if (error) {
       callback(error);

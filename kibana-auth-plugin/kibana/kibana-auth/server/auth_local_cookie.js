@@ -18,6 +18,8 @@ module.exports = function (server, options) {
     const USER_TYPE_HEADER = 'x-es-user-type';
     const ABS_PATH = server.config().get('kibana-auth.kibana_install_dir');
     const CACHE_NAME = 'kibana-auth';
+    const ADMIN_USER = server.config().get('elasticsearch.username');
+    const ADMIN_PASS = server.config().get('elasticsearch.password');
 
     // Encode cookie with symmetric key encryption using password pulled from config
     const IRON_COOKIE_PASSWORD = server.config().get('kibana-auth.cookie_password');
@@ -82,6 +84,50 @@ module.exports = function (server, options) {
     const logout = function (request, reply) {
         request.cookieAuth.clear();
         return reply.redirect(LOGIN_PAGE);
+    };
+
+    const adminuserSid = UUID();
+    const prometheusLogin = function (request, reply) {
+        request.cookieAuth.set({ sid: adminuserSid, jwt: "", type: 4 });
+        return reply.redirect('/api/status?extended');
+    };
+    const prometheusStats = function (request, reply) {
+        let username;
+        let password;
+
+        if (
+            typeof request.headers !== 'undefined' &&
+            typeof request.headers['authorization'] !== 'undefined'
+        ) {
+            let b64 = new Buffer(request.headers['authorization'].split(" ")[1], "base64");
+            let userAndPass = b64.toString().split(":");
+
+            username = userAndPass[0];
+            password = userAndPass[1];
+        }
+
+        if (username === ADMIN_USER && password === ADMIN_PASS) {
+            request.server.app.cache.get(adminuserSid, (err, cached) => {
+                if (err) {
+                    throw err;
+                }
+
+                if (!cached) {
+                    request.server.app.cache.set(adminuserSid, { jwt: "", type: 4 }, 0, (err) => {
+                        if (err) {
+                            throw err;
+                        }
+                        prometheusLogin(request, reply);
+                    });
+                }
+                else {
+                    prometheusLogin(request, reply);
+                }
+            });
+        }
+        else {
+            return reply.redirect(LOGIN_PAGE);
+        }
     };
 
     // Inert allows for the serving of static files
@@ -222,6 +268,15 @@ module.exports = function (server, options) {
                 handler: {
                     file: ABS_PATH + '/optimize/bundles/commons.style.css'
                 },
+                config: {
+                    auth: { mode: 'optional' },
+                    plugins: { 'hapi-auth-cookie': { redirectTo: false } }
+                }
+            },
+            {
+                method: ['GET'],
+                path: '/prometheus_stats',
+                handler: prometheusStats,
                 config: {
                     auth: { mode: 'optional' },
                     plugins: { 'hapi-auth-cookie': { redirectTo: false } }
