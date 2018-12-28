@@ -13,7 +13,7 @@ module.exports = function (server, options) {
     const LOGIN_PAGE = '/login_page';
     const REGULAR_ES_USER = 4;
     const DEV_APPS_STANDALONE_URL = [
-        '/app/apm', '/app/monitoring', '/app/timelion', '/app/canvas', '/app/ml', '/app/infra'
+        '/app/apm', '/app/monitoring', '/app/timelion', '/app/ml', '/app/infra'
     ];
     const USER_TYPE_HEADER = 'x-es-user-type';
     const ABS_PATH = server.config().get('kibana-auth.kibana_install_dir');

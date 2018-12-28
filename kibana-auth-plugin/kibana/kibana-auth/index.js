@@ -4,7 +4,7 @@ export default function (kibana) {
     const LOGOUT_ORDER = 10000;
     /* These identify the application in the navigation panel */
     const DEV_APPS_ID = [
-        'apm', 'kibana:dev_tools', 'monitoring', 'kibana:management', 'timelion', 'canvas', 'ml', 'infra',
+        'apm', 'kibana:dev_tools', 'monitoring', 'kibana:management', 'timelion', 'ml', 'infra',
         'kibana-prometheus-exporter'
     ];
     /* These identify core applications in the URL */
