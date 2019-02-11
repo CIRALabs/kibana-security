@@ -2,12 +2,13 @@
 // To log (for debugging):
 // server.log(['info'], 'Log message here');
 
-module.exports = function (server, options) {
+module.exports = async function (server, options) {
     const ELASTICSEARCH = require('elasticsearch');
     const UUID = require('uuid/v4');
     const INERT = require('inert');
     const HAPI_AUTH_COOKIE = require('hapi-auth-cookie');
     const CATBOX_MEMORY = require('catbox-memory');
+    // const CATBOX = require('catbox');
 
     const TWO_HOURS_IN_MS = 2 * 60 * 60 * 1000;
     const LOGIN_PAGE = '/login_page';
@@ -37,13 +38,16 @@ module.exports = function (server, options) {
     };
     let client = new ELASTICSEARCH.Client({
         apiVersion: 'tokenApi',
-        host: server.config().get('elasticsearch.url')
+        host: server.config().get('elasticsearch.hosts')[0]
     });
 
-    const login = function (request, reply) {
+    const login = function (request, h) {
 
+        //FIXME Checking here for auth
+        server.log(['info'], 'auth.isAuthenticated: ' + request.auth.isAuthenticated);
+        server.log(['info'], 'auth.isAuthorized: ' + request.auth.isAuthorized);
         if (request.auth.isAuthenticated) {
-            return reply.continue();
+            return h.continue;
         }
 
         let username;
@@ -63,35 +67,39 @@ module.exports = function (server, options) {
                     const sid = UUID();
                     try {
                         await request.server.app.cache.set(sid, { jwt: response.result, type: response.user_type }, 0);
+                        request.cookieAuth.set({ sid: sid, jwt: response.result, type: response.user_type });
                     } catch (err) {
                         server.log(['error'], 'Failed to set JWT in cache, err: ' + err);
                     }
-                    request.cookieAuth.set({ sid: sid, jwt: response.result, type: response.user_type });
-                    return reply.redirect('/');
+                    return h.redirect('/');
                 }
                 else {
-                    return reply.redirect(LOGIN_PAGE);
+                    return h.redirect(LOGIN_PAGE);
                 }
             }).catch(() => {
-                return reply.redirect(LOGIN_PAGE);
+                return h.redirect(LOGIN_PAGE);
             });
         }
         else {
-            return reply.redirect(LOGIN_PAGE);
+            return h.redirect(LOGIN_PAGE);
         }
     };
 
-    const logout = function (request, reply) {
+    const logout = function (request, h) {
         request.cookieAuth.clear();
-        return reply.redirect(LOGIN_PAGE);
+        return h.redirect(LOGIN_PAGE);
     };
 
     const adminuserSid = UUID();
-    const prometheusLogin = function (request, reply) {
-        request.cookieAuth.set({ sid: adminuserSid, jwt: "", type: 4 });
-        return reply.redirect('/api/status?extended');
+    const prometheusLogin = async function (request, h) {
+        try {
+            request.cookieAuth.set({ sid: adminuserSid, jwt: "", type: 4 });
+            return h.redirect('/api/status?extended');
+        } catch (err) {
+            throw err;
+        }
     };
-    const prometheusStats = function (request, reply) {
+    const prometheusStats = async function (request, h) {
         let username;
         let password;
 
@@ -107,57 +115,46 @@ module.exports = function (server, options) {
         }
 
         if (username === ADMIN_USER && password === ADMIN_PASS) {
-            request.server.app.cache.get(adminuserSid, (err, cached) => {
-                if (err) {
-                    throw err;
-                }
-
+            try {
+                let cached = await request.server.app.cache.get(adminuserSid);
                 if (!cached) {
-                    request.server.app.cache.set(adminuserSid, { jwt: "", type: 4 }, 0, (err) => {
-                        if (err) {
-                            throw err;
-                        }
-                        prometheusLogin(request, reply);
-                    });
+                    await request.server.app.cache.set(adminuserSid, { jwt: "", type: 4 }, 0);
+                    prometheusLogin(request, h);
                 }
                 else {
-                    prometheusLogin(request, reply);
+                    prometheusLogin(request, h);
                 }
-            });
+            } catch (err) {
+                throw err;
+            }
         }
         else {
-            return reply.redirect(LOGIN_PAGE);
+            return h.redirect(LOGIN_PAGE);
         }
     };
 
-    // Inert allows for the serving of static files
-    server.register(INERT, (err) => {
-        if (err) {
-            throw err;
+    try {
+        // Inert allows for the serving of static files
+        await server.register(INERT);
+
+        await server.register(HAPI_AUTH_COOKIE);
+        //TODO
+        // const catbox_client = new CATBOX.Client(CATBOX_MEMORY);
+        // try {
+        //     await catbox_client.start();
+        // }
+
+        await server.cache.provision({ engine: CATBOX_MEMORY, name: CACHE_NAME });
+        const cache = server.cache({ cache: CACHE_NAME, segment: 'sessions', expiresIn: TWO_HOURS_IN_MS });
+        // For some reason Kibana doesn't start caches anymore, so this accesses the internal memory
+        // cache to give it a kick manually
+        if (!cache.isReady()) {
+            await cache._cache.connection.start();
+            server.log(['info'], 'Started memory cache for ' + CACHE_NAME);
         }
-    });
-    server.register(HAPI_AUTH_COOKIE, (err) => {
-        if (err) {
-            throw err;
-        }
+        server.app.cache = cache;
 
-        server.cache.provision({ engine: CATBOX_MEMORY, name: CACHE_NAME }, (err) => {
-            if (err) {
-                throw err;
-            }
-
-            const cache = server.cache({ cache: CACHE_NAME, segment: 'sessions', expiresIn: TWO_HOURS_IN_MS });
-            // For some reason Kibana doesn't start caches anymore, so this accesses the internal memory
-            // cache to give it a kick manually
-            if (!cache.isReady()) {
-                cache._cache.connection.start(() => {
-                    server.log(['info'], 'Started memory cache for ' + CACHE_NAME);
-                });
-            }
-            server.app.cache = cache;
-        });
-
-        server.auth.strategy('session', 'cookie', true, {
+        server.auth.strategy('session', 'cookie', {
             password: IRON_COOKIE_PASSWORD,
             cookie: 'sid',
             clearInvalid: true,
@@ -165,24 +162,18 @@ module.exports = function (server, options) {
             ttl: TWO_HOURS_IN_MS,
             //FIXME change to true once SSL is enabled (cluster wide, node to node)
             isSecure: false,
-            validateFunc: function (request, session, callback) {
-                server.app.cache.get(session.sid, (err, cached) => {
-                    if (err) {
-                        return callback(err, false);
-                    }
+            validateFunc: async function (request, session) {
+                let cached = await server.app.cache.get(session.sid);
+                if (!cached) {
+                    return { valid: null, credentials: null };
+                }
+                // This line is the linch pin of this whole operation
+                // It ensures that the JWT is passed around on requests to Elasticsearch
+                request.headers['authorization'] = 'Bearer ' + cached.jwt;
+                // User type determines which applications show up on Kibana nav
+                request.headers[USER_TYPE_HEADER] = cached.type;
 
-                    if (!cached) {
-                        return callback(null, false);
-                    }
-
-                    // This line is the linch pin of this whole operation
-                    // It ensures that the JWT is passed around on requests to Elasticsearch
-                    request.headers['authorization'] = 'Bearer ' + cached.jwt;
-                    // User type determines which applications show up on Kibana nav
-                    request.headers[USER_TYPE_HEADER] = cached.type;
-
-                    return callback(null, true, cached.jwt);
-                });
+                return { valid: true, credentials: cached.jwt };
             }
         });
 
@@ -198,25 +189,27 @@ module.exports = function (server, options) {
         // This extension does server-side redirection of standalone dev apps if the user is not a developer
         server.ext({
             type: 'onPostAuth',
-            method: function (request, reply) {
+            method: function (request, h) {
                 if (
                     typeof request.headers !== 'undefined' &&
                     typeof request.headers[USER_TYPE_HEADER] !== 'undefined' &&
                     request.headers[USER_TYPE_HEADER] === REGULAR_ES_USER
                 ) {
                     if (isForbiddenApp(request.path)) {
-                        return reply.redirect('/');
+                        return h.redirect('/');
                     }
                 }
-                return reply.continue();
+                return h.continue;
             }
         });
+
+        server.auth.default('session');
 
         server.route([
             {
                 method: ['GET', 'POST'],
                 path: '/login',
-                config: {
+                options: {
                     handler: login,
                     auth: { mode: 'try' },
                     plugins: { 'hapi-auth-cookie': { redirectTo: false } }
@@ -225,7 +218,7 @@ module.exports = function (server, options) {
             {
                 method: 'GET',
                 path: '/logout',
-                config: { handler: logout }
+                options: { handler: logout }
             },
             // Explicitly serve the following files for the login page, to avoid automatic redirection
             {
@@ -235,7 +228,7 @@ module.exports = function (server, options) {
                     //TODO Would be nice to have an 'invalid username/password' message on this again
                     file: ABS_PATH + '/plugins/kibana-auth/public/login_page.html'
                 },
-                config: {
+                options: {
                     auth: { mode: 'optional' },
                     plugins: { 'hapi-auth-cookie': { redirectTo: false } }
                 }
@@ -246,7 +239,7 @@ module.exports = function (server, options) {
                 handler: {
                     file: ABS_PATH + '/plugins/cira_branding/public/assets/images/cira_logo.svg'
                 },
-                config: {
+                options: {
                     auth: { mode: 'optional' },
                     plugins: { 'hapi-auth-cookie': { redirectTo: false } }
                 }
@@ -257,7 +250,7 @@ module.exports = function (server, options) {
                 handler: {
                     file: ABS_PATH + '/optimize/bundles/kibana.style.css'
                 },
-                config: {
+                options: {
                     auth: { mode: 'optional' },
                     plugins: { 'hapi-auth-cookie': { redirectTo: false } }
                 }
@@ -268,7 +261,7 @@ module.exports = function (server, options) {
                 handler: {
                     file: ABS_PATH + '/optimize/bundles/commons.style.css'
                 },
-                config: {
+                options: {
                     auth: { mode: 'optional' },
                     plugins: { 'hapi-auth-cookie': { redirectTo: false } }
                 }
@@ -277,11 +270,14 @@ module.exports = function (server, options) {
                 method: ['GET'],
                 path: '/prometheus_stats',
                 handler: prometheusStats,
-                config: {
+                options: {
                     auth: { mode: 'optional' },
                     plugins: { 'hapi-auth-cookie': { redirectTo: false } }
                 }
             }
         ]);
-    });
+    } catch (err) {
+        throw err;
+    }
+
 };
