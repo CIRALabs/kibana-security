@@ -1,18 +1,21 @@
 {
   "name": "kibana-prometheus-exporter",
-  "version": "6.5.4",
+  "version": "6.6.0",
   "description": "Prometheus metrics for Kibana",
   "main": "index.js",
   "kibana": {
-    "version": "6.5.4",
+    "version": "6.6.0",
     "templateVersion": "8.0.0"
+  },
+  "dependencies": {
+    "request-promise": "^4.2.2"
   },
   "build": {
     "git": {
-      "count": "78",
-      "sha": "acd8128",
-      "date": "Fri, 7 Dec 2018 20:18:31 +0000"
+      "count": "90",
+      "sha": "379145b",
+      "date": "Thu, 31 Jan 2019 21:45:14 +0000"
     },
-    "date": "Wed Dec 12 2018 18:43:29 GMT+0000 (GMT)"
+    "date": "Thu Jan 31 2019 21:45:29 GMT+0000 (GMT)"
   }
 }

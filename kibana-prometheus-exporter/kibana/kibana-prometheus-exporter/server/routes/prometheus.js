@@ -1,57 +1,38 @@
 
-const request = require('request');
-const formatter = require('./formatter');
+const Requester = require('request-promise');
+const Formatter = require('./formatter');
+
+const makeUrl = (uri, basePath) =>
+    //ZACH-EDIT Use custom path to automate login
+    `${uri}${basePath}/prometheus_stats`;
 
 export default function (server) {
 
   const config = server.config();
+  const basePath = config.get('server').basePath.toString();
+  const user = config.get('kibana-prometheus-exporter.user');
+  const pass = config.get('kibana-prometheus-exporter.pass');
+  const auth = 'Basic ' + new Buffer(`${user}:${pass}`).toString('base64');
+  const url = {
+    uri: makeUrl(server.info.uri, basePath),
+    headers: { 'Authorization': auth },
+    json: true,
+    //ZACH-EDIT Hold on to cookies for future use
+    jar: true
+  };
 
   server.route({
     path: config.get('kibana-prometheus-exporter.path'),
     method: 'GET',
-    handler(req, reply) {
+    async handler(req, h) {
 
-      const basePath = config.get('server').basePath.toString();
-      const username = config.get('elasticsearch.username');
-      const pass = config.get('elasticsearch.password');
-      const statsUrl = makeUrl(server.info.uri, basePath);
-      const user = { user: username, pass: pass };
-      
-      getMetrics(statsUrl, user, function getMetricsCallback(error, info) {
+      const stats = await Requester.get(url);
+      const prometheusStats = Formatter(stats);
 
-        if (error) {
-          reply(error);
-          return
-        }
-
-        reply(formatter(info)).type('text/plain').encoding('binary');
-      });
+      return await h
+          .response(prometheusStats)
+          .type('text/plain')
+          .encoding('binary');
     }
-  });
-}
-
-function makeUrl(uri, basePath) {
-  // Use custom path to automate login
-  return `${uri}${basePath}/prometheus_stats`;
-}
-
-function getMetrics(url, user, callback) {
-
-  const auth = "Basic " + new Buffer(user.user + ":" + user.pass).toString("base64");
-
-  request({
-      url : url,
-      headers : {
-        "Authorization" : auth
-      },
-      // Hold on to cookies for future use
-      jar : true
-    }, function (error, res, body) {
-    if (error) {
-      callback(error);
-      return;
-    }
-
-    callback(null, JSON.parse(body));
   });
 }
