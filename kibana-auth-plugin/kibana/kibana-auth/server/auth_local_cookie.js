@@ -7,8 +7,8 @@ module.exports = async function (server, options) {
     const UUID = require('uuid/v4');
     const INERT = require('inert');
     const HAPI_AUTH_COOKIE = require('hapi-auth-cookie');
+    const CATBOX = require('catbox');
     const CATBOX_MEMORY = require('catbox-memory');
-    // const CATBOX = require('catbox');
 
     const TWO_HOURS_IN_MS = 2 * 60 * 60 * 1000;
     const LOGIN_PAGE = '/login_page';
@@ -130,22 +130,12 @@ module.exports = async function (server, options) {
     try {
         // Inert allows for the serving of static files
         await server.register(INERT);
-
         await server.register(HAPI_AUTH_COOKIE);
-        //TODO
-        // const catbox_client = new CATBOX.Client(CATBOX_MEMORY);
-        // try {
-        //     await catbox_client.start();
-        // }
 
-        await server.cache.provision({ engine: CATBOX_MEMORY, name: CACHE_NAME });
-        const cache = server.cache({ cache: CACHE_NAME, segment: 'sessions', expiresIn: TWO_HOURS_IN_MS });
-        // For some reason Kibana doesn't start caches anymore, so this accesses the internal memory
-        // cache to give it a kick manually
-        if (!cache.isReady()) {
-            await cache._cache.connection.start();
-            server.log(['info'], 'Started memory cache for ' + CACHE_NAME);
-        }
+        // Kibana team doesn't want people using internal Catbox anymore
+        const catbox_client = new CATBOX.Client(CATBOX_MEMORY);
+        const cache = new CATBOX.Policy({ expiresIn: TWO_HOURS_IN_MS }, catbox_client, 'sessions');
+        await catbox_client.start();
         server.app.cache = cache;
 
         server.auth.strategy('session', 'cookie', {
