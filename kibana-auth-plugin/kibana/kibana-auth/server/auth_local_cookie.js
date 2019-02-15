@@ -41,11 +41,8 @@ module.exports = async function (server, options) {
         host: server.config().get('elasticsearch.hosts')[0]
     });
 
-    const login = function (request, h) {
+    const login = async function (request, h) {
 
-        //FIXME Checking here for auth
-        server.log(['info'], 'auth.isAuthenticated: ' + request.auth.isAuthenticated);
-        server.log(['info'], 'auth.isAuthorized: ' + request.auth.isAuthorized);
         if (request.auth.isAuthenticated) {
             return h.continue;
         }
@@ -62,23 +59,20 @@ module.exports = async function (server, options) {
         }
 
         if (username || password) {
-            client.getToken(username, password).then(async (response) => {
-                if (response.success === 1) {
-                    const sid = UUID();
-                    try {
-                        await request.server.app.cache.set(sid, { jwt: response.result, type: response.user_type }, 0);
-                        request.cookieAuth.set({ sid: sid, jwt: response.result, type: response.user_type });
-                    } catch (err) {
-                        server.log(['error'], 'Failed to set JWT in cache, err: ' + err);
-                    }
-                    return h.redirect('/');
+            let response = await client.getToken(username, password);
+            if (response.success === 1) {
+                const sid = UUID();
+                try {
+                    await request.server.app.cache.set(sid, { jwt: response.result, type: response.user_type }, 0);
+                    request.cookieAuth.set({ sid: sid, jwt: response.result, type: response.user_type });
+                } catch (err) {
+                    server.log(['error'], 'Failed to set JWT in cache, err: ' + err);
                 }
-                else {
-                    return h.redirect(LOGIN_PAGE);
-                }
-            }).catch(() => {
+                return h.redirect('/');
+            }
+            else {
                 return h.redirect(LOGIN_PAGE);
-            });
+            }
         }
         else {
             return h.redirect(LOGIN_PAGE);
