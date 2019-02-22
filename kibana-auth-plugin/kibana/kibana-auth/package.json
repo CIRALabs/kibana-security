@@ -3,7 +3,7 @@
     "version": "2018.02.11",
     "main": "index.js",
     "kibana": {
-      "version": "6.6.0"
+      "version": "6.6.1"
     },
     "author": "CIRA Labs / Zachary Wilkins <zachary.wilkins@cira.ca>",
     "website": "http://www.ciralabs.ca"

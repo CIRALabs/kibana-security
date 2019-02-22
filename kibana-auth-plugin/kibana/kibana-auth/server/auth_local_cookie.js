@@ -18,7 +18,6 @@ module.exports = async function (server, options) {
     ];
     const USER_TYPE_HEADER = 'x-es-user-type';
     const ABS_PATH = server.config().get('kibana-auth.kibana_install_dir');
-    const CACHE_NAME = 'kibana-auth';
     const ADMIN_USER = server.config().get('elasticsearch.username');
     const ADMIN_PASS = server.config().get('elasticsearch.password');
 
