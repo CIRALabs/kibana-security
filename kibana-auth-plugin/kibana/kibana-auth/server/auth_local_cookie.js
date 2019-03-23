@@ -104,14 +104,18 @@ module.exports = async function (server, options) {
             password = userAndPass[1];
         }
 
+        //TODO Switch to retrieving a token using ES API
         if (username === ADMIN_USER && password === ADMIN_PASS) {
             try {
                 let cached = await request.server.app.cache.get(adminuserSid);
                 if (!cached) {
                     await request.server.app.cache.set(adminuserSid, { jwt: '', type: 4 }, 0);
                 }
-                request.cookieAuth.set({ sid: adminuserSid, jwt: '', type: 4 });
-                return h.redirect('/api/status?extended');
+
+                return await server.inject({
+                    url: '/api/status?extended',
+                    credentials: { sid: adminuserSid, jwt: '', type: 4 }
+                });
             } catch (err) {
                 throw err;
             }
