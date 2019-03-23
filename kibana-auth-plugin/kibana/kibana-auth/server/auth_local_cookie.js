@@ -58,7 +58,12 @@ module.exports = async function (server, options) {
         }
 
         if (username || password) {
-            let response = await client.getToken(username, password);
+            let response;
+            try {
+                response = await client.getToken(username, password);
+            } catch (err) {
+                response = { success: 0 };
+            }
             if (response.success === 1) {
                 const sid = UUID();
                 try {
@@ -84,14 +89,6 @@ module.exports = async function (server, options) {
     };
 
     const adminuserSid = UUID();
-    const prometheusLogin = async function (request, h) {
-        try {
-            request.cookieAuth.set({ sid: adminuserSid, jwt: "", type: 4 });
-            return h.redirect('/api/status?extended');
-        } catch (err) {
-            throw err;
-        }
-    };
     const prometheusStats = async function (request, h) {
         let username;
         let password;
@@ -100,8 +97,8 @@ module.exports = async function (server, options) {
             typeof request.headers !== 'undefined' &&
             typeof request.headers['authorization'] !== 'undefined'
         ) {
-            let b64 = new Buffer(request.headers['authorization'].split(" ")[1], "base64");
-            let userAndPass = b64.toString().split(":");
+            let b64 = new Buffer(request.headers['authorization'].split(' ')[1], 'base64');
+            let userAndPass = b64.toString().split(':');
 
             username = userAndPass[0];
             password = userAndPass[1];
@@ -111,19 +108,15 @@ module.exports = async function (server, options) {
             try {
                 let cached = await request.server.app.cache.get(adminuserSid);
                 if (!cached) {
-                    await request.server.app.cache.set(adminuserSid, { jwt: "", type: 4 }, 0);
-                    prometheusLogin(request, h);
+                    await request.server.app.cache.set(adminuserSid, { jwt: '', type: 4 }, 0);
                 }
-                else {
-                    prometheusLogin(request, h);
-                }
+                request.cookieAuth.set({ sid: adminuserSid, jwt: '', type: 4 });
+                return h.redirect('/api/status?extended');
             } catch (err) {
                 throw err;
             }
         }
-        else {
-            return h.redirect(LOGIN_PAGE);
-        }
+        return h.redirect(LOGIN_PAGE);
     };
 
     try {
