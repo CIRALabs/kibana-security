@@ -104,7 +104,7 @@ module.exports = async function (server, options) {
             password = userAndPass[1];
         }
 
-        //TODO Switch to retrieving a token using ES API
+        //TODO Switch to retrieving a token using ES API à la login function
         if (username === ADMIN_USER && password === ADMIN_PASS) {
             try {
                 let cached = await request.server.app.cache.get(adminuserSid);
@@ -112,6 +112,11 @@ module.exports = async function (server, options) {
                     await request.server.app.cache.set(adminuserSid, { jwt: '', type: 4 }, 0);
                 }
 
+                /* FIXME This call is necessary to avoid the authentication framework.
+                If you follow the execution in a debugger, the actual stats are successfully retrieved.
+                The problem arises in the marshalling of the response to JSON (circular error). There's
+                not a way I can see to address this, because it's all handled internally by Kibana/Hapi...
+                 */
                 return await server.inject({
                     url: '/api/status?extended',
                     credentials: { sid: adminuserSid, jwt: '', type: 4 }
