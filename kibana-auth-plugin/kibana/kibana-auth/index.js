@@ -7,8 +7,13 @@ export default function (kibana) {
         'apm', 'kibana:dev_tools', 'monitoring', 'kibana:management', 'timelion', 'ml', 'infra',
         'kibana-prometheus-exporter', 'uptime'
     ];
+    /* These identify the application in the K7 keypad menu */
+    const K7_DEV_APPS = [
+        'app/timelion', 'app/apm', 'app/uptime', 'app/kibana#/dev_tools', 'app/monitoring',
+        'app/kibana#/management', 'app/graph'
+    ];
     /* These identify core applications in the URL */
-    const DEV_APPS_CORE_URL = ['/dev_tools', '/management'];
+    const DEV_APPS_CORE_URL = ['/dev_tools', '/management', '/uptime', '/monitoring', '/graph', '/apm'];
 
     return new kibana.Plugin({
         name: 'kibana-auth',
@@ -29,6 +34,7 @@ export default function (kibana) {
             replaceInjectedVars(injectedVars, request) {
                 if (request.headers['x-es-user-type'] === REGULAR_ES_USER) {
                     injectedVars.hiddenAppIds = DEV_APPS_ID;
+                    injectedVars.hiddenK7Apps = K7_DEV_APPS;
                     injectedVars.hiddenAppUrlsCore = DEV_APPS_CORE_URL;
                 }
 
