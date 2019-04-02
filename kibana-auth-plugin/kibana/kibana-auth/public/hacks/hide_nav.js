@@ -7,20 +7,23 @@
 import chrome from 'ui/chrome';
 
 const hiddenAppIds = chrome.getInjected('hiddenAppIds') || [];
-const hiddenK7Apps = chrome.getInjected('hiddenK7Apps') || [];
+// const hiddenK7Apps = chrome.getInjected('hiddenK7Apps') || [];
 
 hiddenAppIds.forEach(id => {
+    console.log(chrome.getNavLinks())
     if (chrome.navLinkExists(id)) {
+        console.log(chrome.getNavLinkById(id));
         chrome.getNavLinkById(id).hidden = true;
     }
 });
 
-hiddenK7Apps.forEach(app => {
-    keyPad = document.querySelector('#keyPadMenu')
-    if(typeof(keyPad) != 'undefined' && keyPad != null) {
-        menuItem = keyPad.querySelector('a[href*="' + app + '"]');
-        if(typeof(menuItem) != 'undefined' && menuItem != null) {
-            keyPad.removeChild(menuItem);
-        }
-    }
-})
+// hiddenK7Apps.forEach(app => {
+//     var keyPad = top.document.querySelector('#keyPadMenu');
+//     console.log(keyPad);
+//     if(typeof(keyPad) != 'undefined' && keyPad != null) {
+//         var menuItem = keyPad.querySelector('a[href*="' + app + '"]');
+//         if(typeof(menuItem) != 'undefined' && menuItem != null) {
+//             keyPad.removeChild(menuItem);
+//         }
+//     }
+// })
