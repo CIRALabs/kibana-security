@@ -1,6 +1,6 @@
 {
     "name": "kibana-auth",
-    "version": "2019.04.02",
+    "version": "2019.04.03",
     "main": "index.js",
     "kibana": {
       "version": "7.0.0"
