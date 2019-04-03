@@ -26,7 +26,7 @@ export default function (kibana) {
                     order: LOGOUT_ORDER,
                     url: '/logout',
                     description: 'Logout current user',
-                    icon: 'plugins/kibana-auth/assets/images/padlock.svg',
+                    icon: 'plugins/kibana-auth/assets/images/logout7.svg',
                     linkToLastSubUrl: false
                 }
             ],
