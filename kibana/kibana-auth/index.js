@@ -29,7 +29,6 @@ export default function (kibana) {
             replaceInjectedVars(injectedVars, request) {
                 if (request.headers['x-es-user-type'] === REGULAR_ES_USER) {
                     injectedVars.hiddenAppIds = DEV_APPS_ID;
-                    injectedVars.hiddenK7Apps = K7_DEV_APPS;
                     injectedVars.hiddenAppUrlsCore = DEV_APPS_CORE_URL;
                 }
 
