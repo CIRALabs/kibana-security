@@ -14,7 +14,7 @@ module.exports = async function (server, options) {
     const LOGIN_PAGE = '/login_page';
     const REGULAR_ES_USER = 4;
     const DEV_APPS_STANDALONE_URL = [
-        '/app/apm', '/app/monitoring', '/app/ml', '/app/infra', '/app/graph', '/app/uptime'
+        '/app/apm', '/app/monitoring', '/app/ml', '/app/infra', '/app/graph', '/app/uptime', '/app/timelion'
     ];
     const USER_TYPE_HEADER = 'x-es-user-type';
     const ABS_PATH = server.config().get('kibana-auth.kibana_install_dir');
