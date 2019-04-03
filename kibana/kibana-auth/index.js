@@ -7,11 +7,6 @@ export default function (kibana) {
         'apm', 'kibana:dev_tools', 'monitoring', 'kibana:management', 'timelion', 'ml', 'infra',
         'kibana-prometheus-exporter', 'uptime'
     ];
-    /* These identify the application in the K7 keypad menu */
-    const K7_DEV_APPS = [
-        'app/timelion', 'app/apm', 'app/uptime', 'app/kibana#/dev_tools', 'app/monitoring',
-        'app/kibana#/management', 'app/graph'
-    ];
     /* These identify core applications in the URL */
     const DEV_APPS_CORE_URL = ['/dev_tools', '/management', '/uptime', '/monitoring', '/graph', '/apm'];
 
