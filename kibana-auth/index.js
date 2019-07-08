@@ -5,10 +5,10 @@ export default function (kibana) {
     /* These identify the application in the navigation panel */
     const DEV_APPS_ID = [
         'apm', 'kibana:dev_tools', 'monitoring', 'kibana:management', 'timelion', 'ml', 'infra',
-        'kibana-prometheus-exporter', 'uptime', 'siem'
+        'kibana-prometheus-exporter', 'uptime'
     ];
     /* These identify core applications in the URL */
-    const DEV_APPS_CORE_URL = ['/dev_tools', '/management', '/uptime', '/monitoring', '/graph', '/apm', '/siem'];
+    const DEV_APPS_CORE_URL = ['/dev_tools', '/management', '/uptime', '/monitoring', '/graph', '/apm'];
 
     return new kibana.Plugin({
         name: 'kibana-auth',
