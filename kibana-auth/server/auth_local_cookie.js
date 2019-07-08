@@ -9,17 +9,21 @@ module.exports = async function (server, options) {
     const HAPI_AUTH_COOKIE = require('hapi-auth-cookie');
     const CATBOX = require('catbox');
     const CATBOX_MEMORY = require('catbox-memory');
+    const {first} = require('rxjs/operators');
 
     const TWO_HOURS_IN_MS = 2 * 60 * 60 * 1000;
     const LOGIN_PAGE = '/login_page';
     const REGULAR_ES_USER = 4;
     const DEV_APPS_STANDALONE_URL = [
-        '/app/apm', '/app/monitoring', '/app/ml', '/app/infra', '/app/graph', '/app/uptime', '/app/timelion'
+        '/app/apm', '/app/monitoring', '/app/ml', '/app/infra', '/app/graph', '/app/uptime', '/app/timelion', '/app/siem'
     ];
+
+    const legacyEsConfig = await server.newPlatform.setup.core.elasticsearch.legacy.config$.pipe(first()).toPromise();
+
     const USER_TYPE_HEADER = 'x-es-user-type';
     const ABS_PATH = server.config().get('kibana-auth.kibana_install_dir');
-    const ADMIN_USER = server.config().get('elasticsearch.username');
-    const ADMIN_PASS = server.config().get('elasticsearch.password');
+    const ADMIN_USER = legacyEsConfig.username;
+    const ADMIN_PASS = legacyEsConfig.password;
 
     // Encode cookie with symmetric key encryption using password pulled from config
     const IRON_COOKIE_PASSWORD = server.config().get('kibana-auth.cookie_password');
@@ -37,7 +41,7 @@ module.exports = async function (server, options) {
     };
     let client = new ELASTICSEARCH.Client({
         apiVersion: 'tokenApi',
-        host: server.config().get('elasticsearch.hosts')[0]
+        host: legacyEsConfig.hosts[0]
     });
 
     const login = async function (request, h) {
