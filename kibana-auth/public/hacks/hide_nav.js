@@ -4,12 +4,12 @@
  * client-side redirection is necessary for core apps (Dev Tools, Management).
  */
 
-const core = require('ui/new_platform').getNewPlatform().start.core;
+import chrome from 'ui/chrome';
 
-const hiddenAppIds = core.injectedMetadata.getInjectedVars()['hiddenAppIds'] || [];
+const hiddenAppIds = chrome.getInjected('hiddenAppIds') || [];
 
 hiddenAppIds.forEach(id => {
-    if (core.chrome.navLinks.has(id)) {
-        core.chrome.navLinks.update(id, { hidden: true });
+    if (chrome.navLinkExists(id)) {
+        chrome.getNavLinkById(id).hidden = true;
     }
 });
