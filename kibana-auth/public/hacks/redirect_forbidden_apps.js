@@ -1,8 +1,9 @@
-import chrome from 'ui/chrome';
 import uiRoutes from 'ui/routes';
-import { notify } from 'ui/notify';
+import {notify} from 'ui/notify';
 
-const hiddenAppUrlsCore = chrome.getInjected('hiddenAppUrlsCore') || [];
+const core = require('ui/new_platform').getNewPlatform().start.core;
+
+const hiddenAppUrlsCore = core.injectedMetadata.getInjectedVars()['hiddenAppUrlsCore'] || [];
 
 uiRoutes.addSetupWork(function ($location, kbnUrl) {
     for (let url of hiddenAppUrlsCore) {
