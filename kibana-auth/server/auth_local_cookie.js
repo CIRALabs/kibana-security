@@ -185,7 +185,9 @@ module.exports = async function (server, options) {
                     request.headers[USER_TYPE_HEADER] === REGULAR_ES_USER
                 ) {
                     if (isForbiddenApp(request.path)) {
-                        return h.redirect('/');
+                        return h
+                            .redirect('/')
+                            .takeover();
                     }
                 }
                 return h.continue;
