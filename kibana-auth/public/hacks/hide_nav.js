@@ -4,7 +4,7 @@
  * client-side redirection is necessary for core apps (Dev Tools, Management).
  */
 
-const core = require('ui/new_platform').getNewPlatform().start.core;
+const core = require('ui/new_platform').npStart.core;
 
 const hiddenAppIds = core.injectedMetadata.getInjectedVars()['hiddenAppIds'] || [];
 
