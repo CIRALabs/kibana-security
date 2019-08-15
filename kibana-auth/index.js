@@ -1,14 +1,14 @@
 export default function (kibana) {
-    const REGULAR_ES_USER = 4;
+    const DEVELOPER = 6;
+    const POWERUSER = 5;
     /* Core plugins are ordered around 9000, so this ensures that the logout button is below them */
     const LOGOUT_ORDER = 10000;
     /* These identify the application in the navigation panel */
-    const DEV_APPS_ID = [
-        'apm', 'kibana:dev_tools', 'monitoring', 'kibana:management', 'timelion', 'ml', 'infra',
-        'kibana-prometheus-exporter', 'uptime', 'siem'
-    ];
+    const DEV_APPS_ID = ['apm', 'monitoring', 'kibana:management', 'timelion', 'ml', 'infra', 'kibana-prometheus-exporter', 'uptime', 'siem'];
+    const POWERUSER_APPS_ID = ['kibana:dev_tools'];
     /* These identify core applications in the URL */
-    const DEV_APPS_CORE_URL = ['/dev_tools', '/management', '/uptime', '/monitoring', '/graph', '/apm', '/siem'];
+    const DEV_APPS_CORE_URL = ['/dev_tools/searchprofiler', '/dev_tools/grokdebugger', '/management', '/uptime', '/monitoring', '/graph', '/apm', '/siem'];
+    const POWERUSER_APPS_CORE_URL = ['/dev_tools/console'];
 
     return new kibana.Plugin({
         name: 'kibana-auth',
@@ -27,7 +27,10 @@ export default function (kibana) {
             ],
 
             replaceInjectedVars(injectedVars, request) {
-                if (request.headers['x-es-user-type'] === REGULAR_ES_USER) {
+                if (request.headers['x-es-user-type'] < POWERUSER) {
+                    injectedVars.hiddenAppIds = DEV_APPS_ID.concat(POWERUSER_APPS_ID);
+                    injectedVars.hiddenAppUrlsCore = DEV_APPS_CORE_URL.concat(POWERUSER_APPS_CORE_URL);
+                } else if (request.headers['x-es-user-type'] < DEVELOPER) {
                     injectedVars.hiddenAppIds = DEV_APPS_ID;
                     injectedVars.hiddenAppUrlsCore = DEV_APPS_CORE_URL;
                 }
