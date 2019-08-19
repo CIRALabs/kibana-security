@@ -1,14 +1,13 @@
 export default function (kibana) {
-    const REGULAR_ES_USER = 4;
+    const POWERUSER = 5;
     /* Core plugins are ordered around 9000, so this ensures that the logout button is below them */
     const LOGOUT_ORDER = 10000;
     /* These identify the application in the navigation panel */
-    const DEV_APPS_ID = [
-        'apm', 'kibana:dev_tools', 'monitoring', 'kibana:management', 'timelion', 'ml', 'infra',
-        'kibana-prometheus-exporter', 'uptime', 'siem'
-    ];
+    const DEV_APPS_ID = ['apm','kibana:dev_tools', 'monitoring', 'kibana:management', 'timelion', 'ml', 'infra', 'kibana-prometheus-exporter', 'uptime', 'siem'];
+    const POWERUSER_APPS_ID = ['kibana-auth:console'];
     /* These identify core applications in the URL */
-    const DEV_APPS_CORE_URL = ['/dev_tools', '/management', '/uptime', '/monitoring', '/graph', '/apm', '/siem'];
+    const DEV_APPS_CORE_URL = ['/dev_tools/searchprofiler', '/dev_tools/grokdebugger', '/management', '/uptime', '/monitoring', '/graph', '/apm', '/siem'];
+    const POWERUSER_APPS_CORE_URL = ['/dev_tools/console'];
 
     return new kibana.Plugin({
         name: 'kibana-auth',
@@ -23,13 +22,27 @@ export default function (kibana) {
                     description: 'Logout current user',
                     icon: 'plugins/kibana-auth/assets/images/logout7.svg',
                     linkToLastSubUrl: false
+                },
+                {
+                    id: 'kibana-auth:console',
+                    title: 'Dev Tools',
+                    order: LOGOUT_ORDER-1,
+                    url: '/app/kibana#/dev_tools/console',
+                    description: 'dev console',
+                    icon: 'plugins/kibana-auth/assets/images/console.svg',
+                    linkToLastSubUrl: false
                 }
             ],
 
             replaceInjectedVars(injectedVars, request) {
-                if (request.headers['x-es-user-type'] === REGULAR_ES_USER) {
+                if (request.headers['x-es-user-type'] === POWERUSER) {
                     injectedVars.hiddenAppIds = DEV_APPS_ID;
                     injectedVars.hiddenAppUrlsCore = DEV_APPS_CORE_URL;
+                }else if (request.headers['x-es-user-type'] < POWERUSER) {
+                    injectedVars.hiddenAppIds = DEV_APPS_ID.concat(POWERUSER_APPS_ID);
+                    injectedVars.hiddenAppUrlsCore = DEV_APPS_CORE_URL.concat(POWERUSER_APPS_CORE_URL);
+                } else {
+                    injectedVars.hiddenAppIds = POWERUSER_APPS_ID;
                 }
 
                 return injectedVars;

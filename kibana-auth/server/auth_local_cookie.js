@@ -13,7 +13,8 @@ module.exports = async function (server, options) {
 
     const TWO_HOURS_IN_MS = 2 * 60 * 60 * 1000;
     const LOGIN_PAGE = '/login_page';
-    const REGULAR_ES_USER = 4;
+    const LOGIN_PAGE_INVALID = '/login_page_invalid';
+    const DEVELOPER = 6;
     const DEV_APPS_STANDALONE_URL = [
         '/app/apm', '/app/monitoring', '/app/ml', '/app/infra', '/app/graph', '/app/uptime', '/app/timelion', '/app/siem'
     ];
@@ -79,7 +80,7 @@ module.exports = async function (server, options) {
                 return h.redirect('/');
             }
             else {
-                return h.redirect(LOGIN_PAGE);
+                return h.redirect(LOGIN_PAGE_INVALID);
             }
         }
         else {
@@ -182,10 +183,12 @@ module.exports = async function (server, options) {
                 if (
                     typeof request.headers !== 'undefined' &&
                     typeof request.headers[USER_TYPE_HEADER] !== 'undefined' &&
-                    request.headers[USER_TYPE_HEADER] === REGULAR_ES_USER
+                    request.headers[USER_TYPE_HEADER] < DEVELOPER
                 ) {
                     if (isForbiddenApp(request.path)) {
-                        return h.redirect('/');
+                        return h
+                            .redirect('/')
+                            .takeover();
                     }
                 }
                 return h.continue;
@@ -214,8 +217,18 @@ module.exports = async function (server, options) {
                 method: ['GET'],
                 path: '/login_page',
                 handler: {
-                    //TODO Would be nice to have an 'invalid username/password' message on this again
                     file: ABS_PATH + '/plugins/kibana-auth/public/login_page.html'
+                },
+                options: {
+                    auth: { mode: 'optional' },
+                    plugins: { 'hapi-auth-cookie': { redirectTo: false } }
+                }
+            },
+            {
+                method: ['GET'],
+                path: '/login_page_invalid',
+                handler: {
+                    file: ABS_PATH + '/plugins/kibana-auth/public/login_page_invalid.html'
                 },
                 options: {
                     auth: { mode: 'optional' },

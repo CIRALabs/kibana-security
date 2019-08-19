@@ -1,7 +1,7 @@
 import uiRoutes from 'ui/routes';
 import {notify} from 'ui/notify';
 
-const core = require('ui/new_platform').getNewPlatform().start.core;
+const core = require('ui/new_platform').npStart.core;
 
 const hiddenAppUrlsCore = core.injectedMetadata.getInjectedVars()['hiddenAppUrlsCore'] || [];
 
