@@ -14,7 +14,7 @@ module.exports = async function (server, options) {
     const TWO_HOURS_IN_MS = 2 * 60 * 60 * 1000;
     const LOGIN_PAGE = '/login_page';
     const LOGIN_PAGE_INVALID = '/login_page_invalid';
-    const REGULAR_ES_USER = 4;
+    const DEVELOPER = 6;
     const DEV_APPS_STANDALONE_URL = [
         '/app/apm', '/app/monitoring', '/app/ml', '/app/infra', '/app/graph', '/app/uptime', '/app/timelion', '/app/siem'
     ];
@@ -183,7 +183,7 @@ module.exports = async function (server, options) {
                 if (
                     typeof request.headers !== 'undefined' &&
                     typeof request.headers[USER_TYPE_HEADER] !== 'undefined' &&
-                    request.headers[USER_TYPE_HEADER] === REGULAR_ES_USER
+                    request.headers[USER_TYPE_HEADER] < DEVELOPER
                 ) {
                     if (isForbiddenApp(request.path)) {
                         return h
