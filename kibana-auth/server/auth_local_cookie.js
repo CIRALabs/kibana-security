@@ -56,14 +56,9 @@ module.exports = async function (server, options) {
     });
 
     const user_info = async function (request, h) {
-        server.log(['info'], "user_info");
         let response;
-        server.log(['info'], h.request.headers.authorization);
-        response = await client.getUserInfo(h.request.headers.authorization);
-        server.log(['info'], response);
         try {
             response = await client.getUserInfo(h.request.headers.authorization);
-            server.log(['info'], response);
         } catch (err) {
             response = {success: 0};
         }
@@ -75,7 +70,6 @@ module.exports = async function (server, options) {
     };
 
     const login = async function (request, h) {
-        server.log(['info'], "test1234test");
         if (request.auth.isAuthenticated) {
             return h.continue;
         }
@@ -186,8 +180,6 @@ module.exports = async function (server, options) {
                 if (!cached) {
                     return { valid: null, credentials: null };
                 }
-                server.log(['info'],cached.jwt);
-                server.log(['info'], session);
                   // This line is the linch pin of this whole operation
                 // It ensures that the JWT is passed around on requests to Elasticsearch
                 request.headers['authorization'] = 'Bearer ' + cached.jwt;
