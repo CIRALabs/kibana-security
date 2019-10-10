@@ -14,6 +14,7 @@ module.exports = async function (server, options) {
     const TWO_HOURS_IN_MS = 2 * 60 * 60 * 1000;
     const LOGIN_PAGE = '/login_page';
     const LOGIN_PAGE_INVALID = '/login_page_invalid';
+    const USER_INFO_PAGE = '/user_info_page';
     const DEVELOPER = 6;
     const DEV_APPS_STANDALONE_URL = [
         '/app/apm', '/app/monitoring', '/app/ml', '/app/infra', '/app/graph', '/app/uptime', '/app/timelion', '/app/siem'
@@ -38,6 +39,15 @@ module.exports = async function (server, options) {
                     Authorization: 'Basic ' + Buffer.from(username + ':' + password).toString('base64')
                 }
             });
+        },
+        getUserInfo: function (authorization) {
+            return this.transport.request({
+                method: 'POST',
+                path: '/user_info',
+                headers: {
+                    Authorization: authorization
+                }
+            })
         }
     };
     let client = new ELASTICSEARCH.Client({
@@ -45,8 +55,27 @@ module.exports = async function (server, options) {
         host: legacyEsConfig.hosts[0]
     });
 
-    const login = async function (request, h) {
+    const user_info = async function (request, h) {
+        server.log(['info'], "user_info");
+        let response;
+        server.log(['info'], h.request.headers.authorization);
+        response = await client.getUserInfo(h.request.headers.authorization);
+        server.log(['info'], response);
+        try {
+            response = await client.getUserInfo(h.request.headers.authorization);
+            server.log(['info'], response);
+        } catch (err) {
+            response = {success: 0};
+        }
+        if (response.success === 1) {
+            return response
+        } else {
+            return h.redirect(USER_INFO_PAGE)
+        }
+    };
 
+    const login = async function (request, h) {
+        server.log(['info'], "test1234test");
         if (request.auth.isAuthenticated) {
             return h.continue;
         }
@@ -157,7 +186,9 @@ module.exports = async function (server, options) {
                 if (!cached) {
                     return { valid: null, credentials: null };
                 }
-                // This line is the linch pin of this whole operation
+                server.log(['info'],cached.jwt);
+                server.log(['info'], session);
+                  // This line is the linch pin of this whole operation
                 // It ensures that the JWT is passed around on requests to Elasticsearch
                 request.headers['authorization'] = 'Bearer ' + cached.jwt;
                 // User type determines which applications show up on Kibana nav
@@ -221,6 +252,26 @@ module.exports = async function (server, options) {
                 },
                 options: {
                     auth: { mode: 'optional' },
+                    plugins: { 'hapi-auth-cookie': { redirectTo: false } }
+                }
+            },
+            {
+                method: ['GET'],
+                path: '/user_info_page',
+                handler: {
+                    file: ABS_PATH + '/plugins/kibana-auth/public/user_info_page.html'
+                },
+                options: {
+                    auth: { mode: 'required' },
+                    plugins: { 'hapi-auth-cookie': { redirectTo: false } }
+                }
+            },
+            {
+                method: ['GET'],
+                path: '/user_info',
+                options: {
+                    handler: user_info,
+                    auth: { mode: 'required' },
                     plugins: { 'hapi-auth-cookie': { redirectTo: false } }
                 }
             },

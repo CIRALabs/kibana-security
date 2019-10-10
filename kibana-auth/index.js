@@ -26,10 +26,19 @@ export default function (kibana) {
                 {
                     id: 'kibana-auth:console',
                     title: 'Dev Tools',
-                    order: LOGOUT_ORDER-1,
+                    order: LOGOUT_ORDER-2,
                     url: '/app/kibana#/dev_tools/console',
                     description: 'dev console',
                     icon: 'plugins/kibana-auth/assets/images/console.svg',
+                    linkToLastSubUrl: false
+                },
+                {
+                    id: 'kibana-auth:user_info',
+                    title: 'user info',
+                    order: LOGOUT_ORDER-1,
+                    url: '/user_info_page',
+                    description: 'user info and change LDAP password',
+                    icon: 'plugins/kibana-auth/assets/images/logout7.svg',
                     linkToLastSubUrl: false
                 }
             ],
