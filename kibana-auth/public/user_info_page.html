@@ -87,7 +87,7 @@
 </head>
 <body>
 <a href="/" class="btn btn-default" style="text-decoration:none;">Home</a>
-<div class="container" style="width: 20%;margin: 0 auto;margin-top: 10%;text-align: center;">
+<div class="container" style="width: 20%;margin: 10% auto 0;text-align: center;">
     <h1>
         <img width="60%" src="/login_page/logo.svg">
     </h1>
@@ -100,19 +100,36 @@
         document.getElementById("user_name").innerHTML = data.user_name;
       })
     })</script>
-    <form id="login-form" method="post" action="/password_change">
+    <form id="password-change-form" method="post" action="/password_change">
         <div class="form-group inner-addon left-addon">
             <input type="password" style="margin-bottom:8px;font-size: 1.25em;height: auto;text-align: center;"
                    name="password" placeholder="Old Password" class="form-control">
             <input type="password" style="margin-bottom:8px;font-size: 1.25em;height: auto;text-align: center;"
-                   name="new-password" placeholder="New Password" class="form-control">
+                   name="newPassword" placeholder="New Password" class="form-control">
             <input type="password" style="margin-bottom:8px;font-size: 1.25em;height: auto;text-align: center;"
-                   name="retype-new-password" placeholder="Retype New Password" class="form-control">
+                   name="retypeNewPassword" placeholder="Retype New Password" class="form-control">
         </div>
         <div>
             <input type="submit" value="Change Password" class="btn btn-default" style="width: 60%;font-size: 1.5em;">
         </div>
     </form>
+    <script>document.getElementById("password-change-form").onsubmit = async (e) => {
+      e.preventDefault();
+      const params = new URLSearchParams([...new FormData(e.target).entries()]);
+      fetch("/change_password", {
+        method: "post",
+        body: params,
+        headers: {"kbn-xsrf": "reporting"}
+      }).then(function (response) {
+        if (response.ok) {
+          response.text().then((text) => {
+            location.replace(text)
+          })
+        } else {
+          console.log("error");
+        }
+      });
+    }</script>
 </div>
 </body>
 </html>

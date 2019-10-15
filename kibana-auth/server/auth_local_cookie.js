@@ -42,8 +42,21 @@ module.exports = async function (server, options) {
         },
         getUserInfo: function (authorization) {
             return this.transport.request({
-                method: 'POST',
+                method: 'GET',
                 path: '/user_info',
+                headers: {
+                    Authorization: authorization
+                }
+            })
+        },
+        changePassword: function (authorization, password, newPassword) {
+            return this.transport.request({
+                method: 'POST',
+                path: '/change_password',
+                body: {
+                    password: password,
+                    newPassword: newPassword
+                },
                 headers: {
                     Authorization: authorization
                 }
@@ -55,7 +68,7 @@ module.exports = async function (server, options) {
         host: legacyEsConfig.hosts[0]
     });
 
-    const user_info = async function (request, h) {
+    const userInfo = async function (request, h) {
         let response;
         try {
             response = await client.getUserInfo(h.request.headers.authorization);
@@ -66,6 +79,38 @@ module.exports = async function (server, options) {
             return response
         } else {
             return h.redirect(USER_INFO_PAGE)
+        }
+    };
+
+    const changePassword = async function (request, h) {
+        server.log(['info'], 'changePassword');
+        let password;
+        let newPassword;
+        let retypeNewPassword;
+
+        if (request.method === 'post') {
+            password = request.payload.password;
+            newPassword = request.payload.newPassword;
+            retypeNewPassword = request.payload.retypeNewPassword;
+        }
+
+        let response;
+        if (password || newPassword || retypeNewPassword) {
+            if (newPassword === retypeNewPassword) {
+                try {
+                    server.log(['info'], 'changePassword-response');
+                    response = await client.changePassword(h.request.headers.authorization, password, newPassword);
+                    server.log(['info'], response);
+                } catch (err) {
+                    response = {success: 0};
+                    server.log(['info'], err);
+                }
+                if (response.success === 1) {
+                    return '/';
+                } else {
+                    return USER_INFO_PAGE;
+                }
+            }
         }
     };
 
@@ -262,7 +307,16 @@ module.exports = async function (server, options) {
                 method: ['GET'],
                 path: '/user_info',
                 options: {
-                    handler: user_info,
+                    handler: userInfo,
+                    auth: { mode: 'required' },
+                    plugins: { 'hapi-auth-cookie': { redirectTo: false } }
+                }
+            },
+            {
+                method: ['POST'],
+                path: '/change_password',
+                options: {
+                    handler: changePassword,
                     auth: { mode: 'required' },
                     plugins: { 'hapi-auth-cookie': { redirectTo: false } }
                 }
