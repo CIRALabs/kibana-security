@@ -38,7 +38,7 @@ export default function (kibana) {
                     order: LOGOUT_ORDER-1,
                     url: '/user_info_page',
                     description: 'user info and change LDAP password',
-                    icon: 'plugins/kibana-auth/assets/images/logout7.svg',
+                    icon: 'plugins/kibana-auth/assets/images/profile_icon.svg',
                     linkToLastSubUrl: false
                 }
             ],
