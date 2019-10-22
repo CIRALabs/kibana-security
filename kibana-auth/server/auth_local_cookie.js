@@ -16,6 +16,7 @@ module.exports = async function (server, options) {
     const LOGIN_PAGE_INVALID = '/login_page_invalid';
     const USER_INFO_PAGE = '/user_info_page';
     const DEVELOPER = 6;
+    const OLD_PASSWORD = 1;
     const DEV_APPS_STANDALONE_URL = [
         '/app/apm', '/app/monitoring', '/app/ml', '/app/infra', '/app/graph', '/app/uptime', '/app/timelion', '/app/siem'
     ];
@@ -145,7 +146,11 @@ module.exports = async function (server, options) {
                 } catch (err) {
                     server.log(['error'], 'Failed to set JWT in cache, err: ' + err);
                 }
-                return h.redirect('/');
+              if (response.user_type === OLD_PASSWORD) {
+                  return h.redirect(USER_INFO_PAGE);
+              } else {
+                  return h.redirect('/');
+              }
             }
             else {
                 return h.redirect(LOGIN_PAGE_INVALID);

@@ -50,7 +50,7 @@ export default function (kibana) {
                 }else if (request.headers['x-es-user-type'] < POWERUSER) {
                     injectedVars.hiddenAppIds = DEV_APPS_ID.concat(POWERUSER_APPS_ID);
                     injectedVars.hiddenAppUrlsCore = DEV_APPS_CORE_URL.concat(POWERUSER_APPS_CORE_URL);
-                } else {
+                } else if (request.headers['x-es-user-type'] > POWERUSER){
                     injectedVars.hiddenAppIds = POWERUSER_APPS_ID;
                 }
 
