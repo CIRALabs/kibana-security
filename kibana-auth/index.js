@@ -67,7 +67,8 @@ export default function (kibana) {
             return Joi.object({
                 enabled: Joi.boolean().default(true),
                 cookie_password: Joi.string().min(32),
-                kibana_install_dir: Joi.string()
+                kibana_install_dir: Joi.string(),
+                disable_password_change_form: Joi.boolean().default(false)
             }).default();
         },
 

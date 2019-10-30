@@ -31,6 +31,8 @@ module.exports = async function (server, options) {
     // Encode cookie with symmetric key encryption using password pulled from config
     const IRON_COOKIE_PASSWORD = server.config().get('kibana-auth.cookie_password');
 
+    const DISABLE_PASSWORD_CHANGE_FORM = server.config().get('kibana-auth.disable_password_change_form');
+
     ELASTICSEARCH.Client.apis.tokenApi = {
         getToken: function (username, password) {
             return this.transport.request({
@@ -96,20 +98,22 @@ module.exports = async function (server, options) {
         }
 
         let response;
-        if (password || newPassword || retypeNewPassword) {
-            if (newPassword === retypeNewPassword) {
-                try {
-                    server.log(['info'], 'changePassword-response');
-                    response = await client.changePassword(h.request.headers.authorization, password, newPassword);
-                    server.log(['info'], response);
-                } catch (err) {
-                    response = {success: 0};
-                    server.log(['info'], err);
-                }
-                if (response.success === 1) {
-                    return '/';
-                } else {
-                    return USER_INFO_PAGE;
+        if (!DISABLE_PASSWORD_CHANGE_FORM) {
+            if (password || newPassword || retypeNewPassword) {
+                if (newPassword === retypeNewPassword) {
+                    try {
+                        server.log(['info'], 'changePassword-response');
+                        response = await client.changePassword(h.request.headers.authorization, password, newPassword);
+                        server.log(['info'], response);
+                    } catch (err) {
+                        response = {success: 0};
+                        server.log(['info'], err);
+                    }
+                    if (response.success === 1) {
+                        return '/';
+                    } else {
+                        return USER_INFO_PAGE;
+                    }
                 }
             }
         }
