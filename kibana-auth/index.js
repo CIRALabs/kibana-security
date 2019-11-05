@@ -26,10 +26,19 @@ export default function (kibana) {
                 {
                     id: 'kibana-auth:console',
                     title: 'Dev Tools',
-                    order: LOGOUT_ORDER-1,
+                    order: LOGOUT_ORDER-2,
                     url: '/app/kibana#/dev_tools/console',
                     description: 'dev console',
                     icon: 'plugins/kibana-auth/assets/images/console.svg',
+                    linkToLastSubUrl: false
+                },
+                {
+                    id: 'kibana-auth:user_info',
+                    title: 'user info',
+                    order: LOGOUT_ORDER-1,
+                    url: '/user_info_page',
+                    description: 'user info and change LDAP password',
+                    icon: 'plugins/kibana-auth/assets/images/profile_icon.svg',
                     linkToLastSubUrl: false
                 }
             ],
@@ -41,7 +50,7 @@ export default function (kibana) {
                 }else if (request.headers['x-es-user-type'] < POWERUSER) {
                     injectedVars.hiddenAppIds = DEV_APPS_ID.concat(POWERUSER_APPS_ID);
                     injectedVars.hiddenAppUrlsCore = DEV_APPS_CORE_URL.concat(POWERUSER_APPS_CORE_URL);
-                } else {
+                } else if (request.headers['x-es-user-type'] > POWERUSER){
                     injectedVars.hiddenAppIds = POWERUSER_APPS_ID;
                 }
 
@@ -58,7 +67,8 @@ export default function (kibana) {
             return Joi.object({
                 enabled: Joi.boolean().default(true),
                 cookie_password: Joi.string().min(32),
-                kibana_install_dir: Joi.string()
+                kibana_install_dir: Joi.string(),
+                disable_password_change_form: Joi.boolean().default(false)
             }).default();
         },
 

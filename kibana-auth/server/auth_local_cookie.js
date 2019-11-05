@@ -14,7 +14,9 @@ module.exports = async function (server, options) {
     const TWO_HOURS_IN_MS = 2 * 60 * 60 * 1000;
     const LOGIN_PAGE = '/login_page';
     const LOGIN_PAGE_INVALID = '/login_page_invalid';
+    const USER_INFO_PAGE = '/user_info_page';
     const DEVELOPER = 6;
+    const OLD_PASSWORD = 1;
     const DEV_APPS_STANDALONE_URL = [
         '/app/apm', '/app/monitoring', '/app/ml', '/app/infra', '/app/graph', '/app/uptime', '/app/timelion', '/app/siem'
     ];
@@ -29,6 +31,8 @@ module.exports = async function (server, options) {
     // Encode cookie with symmetric key encryption using password pulled from config
     const IRON_COOKIE_PASSWORD = server.config().get('kibana-auth.cookie_password');
 
+    const DISABLE_PASSWORD_CHANGE_FORM = server.config().get('kibana-auth.disable_password_change_form');
+
     ELASTICSEARCH.Client.apis.tokenApi = {
         getToken: function (username, password) {
             return this.transport.request({
@@ -38,6 +42,28 @@ module.exports = async function (server, options) {
                     Authorization: 'Basic ' + Buffer.from(username + ':' + password).toString('base64')
                 }
             });
+        },
+        getUserInfo: function (authorization) {
+            return this.transport.request({
+                method: 'GET',
+                path: '/user_info',
+                headers: {
+                    Authorization: authorization
+                }
+            })
+        },
+        changePassword: function (authorization, password, newPassword) {
+            return this.transport.request({
+                method: 'POST',
+                path: '/change_password',
+                body: {
+                    password: password,
+                    newPassword: newPassword
+                },
+                headers: {
+                    Authorization: authorization
+                }
+            })
         }
     };
     let client = new ELASTICSEARCH.Client({
@@ -45,8 +71,55 @@ module.exports = async function (server, options) {
         host: legacyEsConfig.hosts[0]
     });
 
-    const login = async function (request, h) {
+    const userInfo = async function (request, h) {
+        let response;
+        try {
+            response = await client.getUserInfo(h.request.headers.authorization);
+        } catch (err) {
+            response = {success: 0};
+        }
+        if (response.success === 1) {
+            return response
+        } else {
+            return h.redirect(USER_INFO_PAGE)
+        }
+    };
 
+    const changePassword = async function (request, h) {
+        server.log(['info'], 'changePassword');
+        let password;
+        let newPassword;
+        let retypeNewPassword;
+
+        if (request.method === 'post') {
+            password = request.payload.password;
+            newPassword = request.payload.newPassword;
+            retypeNewPassword = request.payload.retypeNewPassword;
+        }
+
+        let response;
+        if (!DISABLE_PASSWORD_CHANGE_FORM) {
+            if (password || newPassword || retypeNewPassword) {
+                if (newPassword === retypeNewPassword) {
+                    try {
+                        server.log(['info'], 'changePassword-response');
+                        response = await client.changePassword(h.request.headers.authorization, password, newPassword);
+                        server.log(['info'], response);
+                    } catch (err) {
+                        response = {success: 0};
+                        server.log(['info'], err);
+                    }
+                    if (response.success === 1) {
+                        return '/';
+                    } else {
+                        return USER_INFO_PAGE;
+                    }
+                }
+            }
+        }
+    };
+
+    const login = async function (request, h) {
         if (request.auth.isAuthenticated) {
             return h.continue;
         }
@@ -77,7 +150,11 @@ module.exports = async function (server, options) {
                 } catch (err) {
                     server.log(['error'], 'Failed to set JWT in cache, err: ' + err);
                 }
-                return h.redirect('/');
+              if (response.user_type === OLD_PASSWORD) {
+                  return h.redirect(USER_INFO_PAGE);
+              } else {
+                  return h.redirect('/');
+              }
             }
             else {
                 return h.redirect(LOGIN_PAGE_INVALID);
@@ -157,7 +234,7 @@ module.exports = async function (server, options) {
                 if (!cached) {
                     return { valid: null, credentials: null };
                 }
-                // This line is the linch pin of this whole operation
+                  // This line is the linch pin of this whole operation
                 // It ensures that the JWT is passed around on requests to Elasticsearch
                 request.headers['authorization'] = 'Bearer ' + cached.jwt;
                 // User type determines which applications show up on Kibana nav
@@ -221,6 +298,35 @@ module.exports = async function (server, options) {
                 },
                 options: {
                     auth: { mode: 'optional' },
+                    plugins: { 'hapi-auth-cookie': { redirectTo: false } }
+                }
+            },
+            {
+                method: ['GET'],
+                path: '/user_info_page',
+                handler: {
+                    file: ABS_PATH + '/plugins/kibana-auth/public/user_info_page.html'
+                },
+                options: {
+                    auth: { mode: 'required' },
+                    plugins: { 'hapi-auth-cookie': { redirectTo: false } }
+                }
+            },
+            {
+                method: ['GET'],
+                path: '/user_info',
+                options: {
+                    handler: userInfo,
+                    auth: { mode: 'required' },
+                    plugins: { 'hapi-auth-cookie': { redirectTo: false } }
+                }
+            },
+            {
+                method: ['POST'],
+                path: '/change_password',
+                options: {
+                    handler: changePassword,
+                    auth: { mode: 'required' },
                     plugins: { 'hapi-auth-cookie': { redirectTo: false } }
                 }
             },
