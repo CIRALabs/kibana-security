@@ -2,114 +2,20 @@
 <html lang="en">
 <head>
     <title>CIRA Labs - User Info</title>
-    <link rel="stylesheet" href="/login_page/commons.style.css">
-    <link rel="stylesheet" href="/login_page/kibana.style.css">
-    <style>
-        body {
-            background-color: #f5f5f5;
-        }
-
-        input {
-            -webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
-            -moz-box-sizing: border-box; /* Firefox, other Gecko */
-            box-sizing: border-box; /* Opera/IE 8+ */
-        }
-
-        .user-info {
-            display: grid;
-            grid-template-columns: auto;
-            padding: 5px 15px;
-        }
-
-        .user-info-entry {
-            display: grid;
-            grid-template-columns: 50% 50%;
-            justify-items: start;
-        }
-
-        .user-info-value {
-            vertical-align: top;
-            display: inline-block;
-            font-weight: normal;
-            font-size: 1.25em;
-        }
-
-
-        .btn-default {
-            color: #FFF;
-        }
-
-        .btn {
-            display: inline-block;
-            margin-bottom: 0;
-            font-weight: normal;
-            text-align: center;
-            vertical-align: middle;
-            -ms-touch-action: manipulation;
-            touch-action: manipulation;
-            cursor: pointer;
-            background-image: none;
-            white-space: nowrap;
-            padding: 5px 15px;
-            font-size: 14px;
-            line-height: 1.42857143;
-            border-radius: 4px;
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
-            background-color: #c8102e;
-            border: 1px #c8102e;
-        }
-
-        .btn:hover,
-        .btn:active,
-        .btn:active {
-            background-color: #b5102e !important;
-            border-color: #b5102e !important;
-        }
-
-        .form-control {
-            display: block;
-            width: 100%;
-            height: 32px;
-            padding: 5px 15px;
-            font-size: 14px;
-            line-height: 1.42857143;
-            color: #343741;
-            background-color: #fff;
-            background-image: none;
-            border: 1px solid #D3DAE6;
-            border-radius: 4px;
-            -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
-            box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
-            -webkit-transition: border-color ease-in-out .15s, box-shadow ease-in-out .15s;
-            -webkit-transition: border-color ease-in-out .15s, -webkit-box-shadow ease-in-out .15s;
-            transition: border-color ease-in-out .15s, -webkit-box-shadow ease-in-out .15s;
-            transition: border-color ease-in-out .15s, box-shadow ease-in-out .15s;
-            transition: border-color ease-in-out .15s, box-shadow ease-in-out .15s, -webkit-box-shadow ease-in-out .15s;
-        }
-
-        input.form-control {
-            border-width: 1px;
-            -webkit-box-shadow: none;
-            box-shadow: none;
-        }
-
-        .has-error .form-control:focus {
-            border: 1px solid #BD271E;
-        }
-
-        input.form-control:focus {
-            border-color: #ea102e !important;
-        }
-    </style>
+    <link rel="stylesheet" href="/commons.style.css">
+    <link rel="stylesheet" href="/kibana.style.css">
+    <link rel="stylesheet" href="/cira_labs.style.css">
+    <script src="/fetch_form.js"></script>
 </head>
 <body>
+<div class="alert hidden" id="alert">
+    <span class="closeBtn" onclick="this.parentElement.classList.add('hidden')">&times;</span>
+    <div id="alert-message"></div>
+</div>
 <a href="/" class="btn btn-default" style="text-decoration:none;">Home</a>
-<div class="container" style="width: 20%;margin: 10% auto 0;text-align: center;">
+<div class="container" style="width: 20%; min-width: 380px; margin: 10% auto 0;text-align: center;">
     <h1>
-        <img width="60%" src="/login_page/logo.svg">
+        <img width="60%" src="/logo.svg">
     </h1>
     <p style="font-family: Arial, Helvetica, sans-serif;font-size: 2em;font-weight: bold;">Kibana</p>
     <div class="user-info">
@@ -128,7 +34,7 @@
         document.getElementById("user_name").innerHTML = data.user_name;
       })
     })</script>
-    <form id="password-change-form" method="post" action="/password_change">
+    <form class="fetch-form" id="password-change-form" method="post" action="/change_password">
         <div class="form-group inner-addon left-addon">
             <input type="password" style="margin-bottom:8px;font-size: 1.25em;height: auto;text-align: center;"
                    name="password" placeholder="Old Password" class="form-control">
@@ -141,23 +47,6 @@
             <input type="submit" value="Change Password" class="btn btn-default" style="width: 60%;font-size: 1.5em;">
         </div>
     </form>
-    <script>document.getElementById("password-change-form").onsubmit = async (e) => {
-      e.preventDefault();
-      const params = new URLSearchParams([...new FormData(e.target).entries()]);
-      fetch("/change_password", {
-        method: "post",
-        body: params,
-        headers: {"kbn-xsrf": "reporting"}
-      }).then(function (response) {
-        if (response.ok) {
-          response.text().then((text) => {
-            location.replace(text)
-          })
-        } else {
-          console.log("error");
-        }
-      });
-    }</script>
 </div>
 </body>
 </html>
