@@ -14,8 +14,10 @@ document.addEventListener("DOMContentLoaded", function () {
           })
         } else {
           response.json().then((json) => {
-            if (response.status === 403 && document.getElementById("alert").classList.contains("hidden")) {
-              document.getElementById("alert").classList.remove("hidden");
+            if (response.status === 403) {
+              if (document.getElementById("alert").classList.contains("hidden")) {
+                document.getElementById("alert").classList.remove("hidden");
+              }
               document.getElementById("alert-message").innerHTML = json.message;
             } else {
               console.log(json.type, json.message)

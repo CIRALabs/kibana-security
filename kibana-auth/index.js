@@ -34,7 +34,7 @@ export default function (kibana) {
                 },
                 {
                     id: 'kibana-auth:user_info',
-                    title: 'user info',
+                    title: 'User Info',
                     order: LOGOUT_ORDER-1,
                     url: '/user_info_page',
                     description: 'user info and change LDAP password',
