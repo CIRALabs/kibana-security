@@ -10,6 +10,7 @@ module.exports = async function (server, options) {
     const CATBOX = require('catbox');
     const CATBOX_MEMORY = require('catbox-memory');
     const {first} = require('rxjs/operators');
+    const Boom = require('boom');
 
     const TWO_HOURS_IN_MS = 2 * 60 * 60 * 1000;
     const LOGIN_PAGE = '/login_page';
@@ -86,7 +87,6 @@ module.exports = async function (server, options) {
     };
 
     const changePassword = async function (request, h) {
-        server.log(['info'], 'changePassword');
         let password;
         let newPassword;
         let retypeNewPassword;
@@ -102,20 +102,23 @@ module.exports = async function (server, options) {
             if (password || newPassword || retypeNewPassword) {
                 if (newPassword === retypeNewPassword) {
                     try {
-                        server.log(['info'], 'changePassword-response');
                         response = await client.changePassword(h.request.headers.authorization, password, newPassword);
-                        server.log(['info'], response);
                     } catch (err) {
                         response = {success: 0};
-                        server.log(['info'], err);
                     }
                     if (response.success === 1) {
                         return '/';
                     } else {
-                        return USER_INFO_PAGE;
+                        throw Boom.forbidden('Incorrect authentication credentials');
                     }
+                }else {
+                    return Boom.forbidden('Passwords do not match');
                 }
+            } else {
+                return Boom.forbidden('All form inputs are required');
             }
+        } else {
+            return Boom.forbidden('Password change form is disable');
         }
     };
 
@@ -151,17 +154,17 @@ module.exports = async function (server, options) {
                     server.log(['error'], 'Failed to set JWT in cache, err: ' + err);
                 }
               if (response.user_type === OLD_PASSWORD) {
-                  return h.redirect(USER_INFO_PAGE);
+                  return USER_INFO_PAGE;
               } else {
-                  return h.redirect('/');
+                  return '/';
               }
             }
             else {
-                return h.redirect(LOGIN_PAGE_INVALID);
+                return Boom.forbidden('Incorrect authentication credentials');
             }
         }
         else {
-            return h.redirect(LOGIN_PAGE);
+            return Boom.forbidden('No username or password provided');
         }
     };
 
@@ -332,18 +335,7 @@ module.exports = async function (server, options) {
             },
             {
                 method: ['GET'],
-                path: '/login_page_invalid',
-                handler: {
-                    file: ABS_PATH + '/plugins/kibana-auth/public/login_page_invalid.html'
-                },
-                options: {
-                    auth: { mode: 'optional' },
-                    plugins: { 'hapi-auth-cookie': { redirectTo: false } }
-                }
-            },
-            {
-                method: ['GET'],
-                path: '/login_page/logo.svg',
+                path: '/logo.svg',
                 handler: {
                     file: ABS_PATH + '/plugins/cira_branding/public/assets/images/cira_logo.svg'
                 },
@@ -354,7 +346,7 @@ module.exports = async function (server, options) {
             },
             {
                 method: ['GET'],
-                path: '/login_page/kibana.style.css',
+                path: '/kibana.style.css',
                 handler: {
                     file: ABS_PATH + '/optimize/bundles/kibana.style.css'
                 },
@@ -365,9 +357,31 @@ module.exports = async function (server, options) {
             },
             {
                 method: ['GET'],
-                path: '/login_page/commons.style.css',
+                path: '/commons.style.css',
                 handler: {
                     file: ABS_PATH + '/optimize/bundles/commons.style.css'
+                },
+                options: {
+                    auth: { mode: 'optional' },
+                    plugins: { 'hapi-auth-cookie': { redirectTo: false } }
+                }
+            },
+            {
+                method: ['GET'],
+                path: '/cira_labs.style.css',
+                handler: {
+                    file: ABS_PATH + '/plugins/kibana-auth/public/cira_labs.style.css'
+                },
+                options: {
+                    auth: { mode: 'optional' },
+                    plugins: { 'hapi-auth-cookie': { redirectTo: false } }
+                }
+            },
+            {
+                method: ['GET'],
+                path: '/fetch_form.js',
+                handler: {
+                    file: ABS_PATH + '/plugins/kibana-auth/public/fetch_form.js'
                 },
                 options: {
                     auth: { mode: 'optional' },
